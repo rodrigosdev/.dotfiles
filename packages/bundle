@@ -1,0 +1,16 @@
+cask_args appdir: "/Applications"
+
+brew "btop"
+brew "fish"
+brew "fisher"
+brew "gh"
+brew "mole"
+brew "python@3.14"
+brew "starship"
+brew "zoxide"
+
+cask "1password"
+cask "discord"
+cask "ghostty"
+cask "raycast"
+cask "yaak@beta"
