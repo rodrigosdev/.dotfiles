@@ -23,5 +23,5 @@ quit-after-last-window-closed = true
 shell-integration = fish
 shell-integration-features = cursor,no-sudo,title,ssh-env,ssh-terminfo,path
 macos-titlebar-proxy-icon = hidden
-macos-option-as-alt = true
+macos-option-as-alt = left
 auto-update-channel = tip
