@@ -7,11 +7,14 @@ This repository contains my personal development environment configuration. It u
 ```
 ~/.dotfiles/
 ├── home/             # Configuration files (stowed to ~)
-│   └──.config/
-│      ├── fish/      # Fish shell configuration
-│      ├── git/       # Git configuration
-│      ├── herdr/     # Herdr configuration
-│      └── ...
+│   ├── .config/
+│   │   ├── fish/      # Fish shell configuration
+│   │   ├── git/       # Git configuration
+│   │   ├── herdr/     # Herdr configuration
+│   │   └── ...
+│   └── .agents/       # Agent skills
+│       └── skills/
+│           └── unslop/  # Unslop writing skill
 ├── packages/
 │   └── bundle         # Base Brewfile
 └── README.md          # This file
