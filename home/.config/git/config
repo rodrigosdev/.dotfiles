@@ -25,7 +25,7 @@
 	format = "ssh"
 
 [init]
-	defaultBranch = "main"
+	defaultBranch = "master"
 
 [pull]
 	rebase = true
