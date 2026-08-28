@@ -14,7 +14,7 @@ brew "stow"
 brew "zoxide"
 
 cask "1password"
-cask "claude-code@latest"
+cask "claude-code"
 cask "cleanshot"
 cask "codex"
 cask "discord"
