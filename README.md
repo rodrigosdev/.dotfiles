@@ -12,9 +12,11 @@ This repository contains my personal development environment configuration. It u
 │   │   ├── git/       # Git configuration
 │   │   ├── herdr/     # Herdr configuration
 │   │   └── ...
-│   └── .agents/       # Agent skills
-│       └── skills/
-│           └── unslop/  # Unslop writing skill
+│   ├── .agents/       # Agent skills
+│   │   └── skills/
+│   │       └── unslop/  # Unslop writing skill
+│   └── .claude/
+│       └── skills -> ../.agents/skills  # Shared skills for Claude Code
 ├── packages/
 │   └── bundle         # Base Brewfile
 └── README.md          # This file

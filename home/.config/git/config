@@ -42,7 +42,7 @@
 [user]
 	email = "hello@rodrigosantos.dev"
 	name = "Rodrigo Santos"
-	signingKey = "~/.ssh/id_ed25519_github.pub"
+	signingkey = ~/.ssh/id_ed25519_github.pub
 
 [includeIf "gitdir:~/Code/Work/"]
 	path = "~/.config/git/work_config"
