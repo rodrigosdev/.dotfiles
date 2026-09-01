@@ -7,11 +7,11 @@ description: Monitor a pull request through review and CI. Use when the user ask
 
 All the repos we work in have various AI review bots. They're helpful, even if they are not always right. 
 
-If your harness offers tools to montiro a PR, use them so you can respond when comments arrive. Otherwise, poll the PR for new comments and checks.
+If your harness offers tools to monitor a PR, use them so you can respond when comments arrive. Otherwise, poll the PR for new comments and checks.
 
-Only act on checks and comments newer than the latest push. Verify every bot finding against the source before changing code. Fix real finding and CI failures, distinguish repository failures from infrastructure flakes and reply with a written reason when dismissing false positives.
+Only act on checks and comments newer than the latest push. Verify every bot finding against the source before changing code. Address real findings and fix CI failures. Distinguish repository failures from infrastructure flakes, and reply with a written reason when dismissing false positives.
 
-Keep an eye on changes to `main` and rebase when needed. If an overlapping PR makes this one obsolete, stop moitoring, report it to the user, and ask before closing the PR unless closure was explicitly authorized.
+Keep an eye on changes to `main` and rebase when needed. If an overlapping PR makes this one obsolete, stop monitoring, report it to the user, and ask before closing the PR unless closure was explicitly authorized.
 
 If a review bot leaves feedback you believe is not worth addressing, reply and resolve the comment. Format comments left on Rodrigo's behalf as:
 
@@ -25,4 +25,4 @@ If a review bot leaves feedback you believe is not worth addressing, reply and r
 Do not let review feedback expand the PR beyond the user's original goal.
 Address real shortcomings, but avoid scope creep.
 
-If nothing has changed, stay quiet rather than posting filled comments. Stop when the review bots and required checks are green on the latest commit. Merge only when the user explicitly requested it; otherwise report that the PR is ready.
+If nothing has changed, stay quiet rather than posting filler comments. Stop when the review bots and required checks are green on the latest commit. Merge only when the user explicitly requested it; otherwise report that the PR is ready.

@@ -5,16 +5,16 @@ description: File a concise pull request. Use when the user asks to file, open, 
 
 # File PR
 
-Before filling, check whether a PR for this branch already exists. Review the diff locally against 
+Before filing, check whether a PR for this branch already exists. Review the diff locally against
 `origin/main` to make sure its contents match the goal.
 
-PR titles usually become commit messages, so follow the repository's title conventions. Look at recently merged PRs and Git history for examples. Prefer a concise, human-readable title that explain why the change matters:
+PR titles usually become commit messages, so follow the repository's title conventions. Look at recently merged PRs and Git history for examples. Prefer a concise, human-readable title that explains why the change matters:
 
 BAD
 > ❌ perf(server): negotiate permessage-deflate on the websocket
 
 GOOD
-> ✅ perf(server): cur websocket frame size by 70% with gzipping
+> ✅ perf(server): cut WebSocket frame size by 70% with gzip compression
 
 Open the description with a simple explanation of the problem based on the user's original prompt, then briefly explain the solution. Do not lead with an implementation inventory:
 
