@@ -6,5 +6,3 @@ set -gx EDITOR cursor
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
-
-fnm env --use-on-cd --shell fish | source
