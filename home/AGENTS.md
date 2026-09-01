@@ -30,7 +30,7 @@ I wanted to share some of my preferences here so we can be more aligned as we wo
 - A questions is a request for an answer, not for changes. If the messages opens with "how hard would it be", "what are your thoughts", "why does", "should we", "is it possible", "can X do Y", or otherwise asks rather than instructs: answer it, and do not edit files.
 - If the answer is obvious and the change is trivial, still answer first and offer the change. Ask before making it!
 
-## Match ceremony to the task
+## Match ceremony to the task 
 
 - Do not spawn subagents or a multi-agent panel for work a single agent finishes in one pass. Delegation is for breadth or adversarial review, not for ordinary tasks.
 - When several agents do work in parallel, state file ownership up front so they do not colide.
