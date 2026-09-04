@@ -14,6 +14,7 @@ This repository contains my personal development environment configuration. It u
 │   │   └── ...
 │   ├── .agents/       # Agent skills
 │   │   └── skills/
+│   │       ├── access-protected-vercel-deployments/
 │   │       └── unslop/  # Unslop writing skill
 │   └── .claude/
 │       └── skills -> ../.agents/skills  # Shared skills for Claude Code
