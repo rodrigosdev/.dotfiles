@@ -33,3 +33,4 @@ Feel free to fork and adapt for your own needs.
 - [Homebrew](https://brew.sh/) for package management
 - [T3 Code](https://t3.codes/) for AI assistance
 - [Dillon Mulroy](https://github.com/dmmulroy/.dotfiles) this pretty much a slop fork of his config
+- [tstack](https://github.com/t3dotgg/tstack) for the PR workflow skills (MIT, see `licenses/tstack`)
