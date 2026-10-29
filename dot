@@ -230,6 +230,104 @@ __copy_public_key() {
   fi
 }
 
+# Type and key material, without the comment. GitHub stores that pair.
+__ssh_pubkey_blob() {
+  local key_type key_data
+  read -r key_type key_data _ < "$SSH_PUB"
+  printf '%s %s\n' "$key_type" "$key_data"
+}
+
+# Prints one of: present, missing, login, scope, error, nokey.
+__signing_key_state() {
+  local out err blob
+  if [[ ! -f "$SSH_PUB" ]]; then
+    printf 'nokey\n'
+    return 0
+  fi
+  if ! __have gh || ! gh auth status >/dev/null 2>&1; then
+    printf 'login\n'
+    return 0
+  fi
+  out="$(mktemp)"
+  err="$(mktemp)"
+  if ! gh api user/ssh_signing_keys --jq '.[] | .key' >"$out" 2>"$err"; then
+    if grep -q 'admin:ssh_signing_key' "$err"; then
+      printf 'scope\n'
+    else
+      printf 'error\n'
+    fi
+    rm -f "$out" "$err"
+    return 0
+  fi
+  blob="$(__ssh_pubkey_blob)"
+  if grep -Fq -- "$blob" "$out"; then
+    printf 'present\n'
+  else
+    printf 'missing\n'
+  fi
+  rm -f "$out" "$err"
+}
+
+__check_github_signing_key() {
+  case "$(__signing_key_state)" in
+    present)
+      __ok "GitHub has this key as a signing key"
+      ;;
+    missing)
+      __bad "This key is not a GitHub signing key, so commits stay unverified. Run: dot ssh"
+      return 1
+      ;;
+    login)
+      __bad "GitHub CLI is not logged in, so the signing key cannot be checked. Run: gh auth login"
+      return 1
+      ;;
+    scope)
+      __bad "GitHub token cannot read signing keys. Run: gh auth refresh -h github.com -s admin:ssh_signing_key"
+      return 1
+      ;;
+    nokey)
+      ;;
+    *)
+      __bad "Could not list GitHub signing keys"
+      return 1
+      ;;
+  esac
+}
+
+__register_github_signing_key() {
+  local title
+  case "$(__signing_key_state)" in
+    present)
+      __ok "GitHub already has this signing key"
+      ;;
+    missing)
+      title="$(__git_email)"
+      if gh ssh-key add "$SSH_PUB" --type signing --title "$title"; then
+        __ok "Added the public key as a GitHub signing key"
+      else
+        __warn "Could not add the GitHub signing key"
+        return 1
+      fi
+      ;;
+    login)
+      __warn "Log in the GitHub CLI, then run dot ssh again: gh auth login"
+      return 1
+      ;;
+    scope)
+      __warn "GitHub token cannot manage signing keys. Run: gh auth refresh -h github.com -s admin:ssh_signing_key"
+      return 1
+      ;;
+    nokey)
+      __bad "Public key is missing"
+      return 1
+      ;;
+    *)
+      __warn "Could not list GitHub signing keys"
+      return 1
+      ;;
+  esac
+}
+
 __print_github_steps() {
   local message pending=0
   if [[ ! -f "$SSH_PUB" ]]; then
@@ -271,10 +369,10 @@ ${BOLD}USAGE${RESET}
 ${BOLD}COMMANDS${RESET}
   init        Install packages, link configs, set Fish as the default shell, install Grok, check Geist Mono, create SSH
   update      Install missing packages, upgrade formulae, and relink configs
-  doctor      Check tools, links, Git signing, SSH, and Geist Mono
+  doctor      Check tools, links, Git signing, the GitHub signing key, SSH, and Geist Mono
   stow        Relink home/ onto ~
   grok        Install Grok with the official installer
-  ssh         Create the GitHub key, client config, and signing files
+  ssh         Create the GitHub key, client config, signing files, and upload the signing key
   packages    Show whether each Brewfile package is installed
   link        Symlink dot into ~/.local/bin
   unlink      Remove that symlink
@@ -342,6 +440,9 @@ cmd_ssh() {
   __ok "Pinned GitHub's host keys"
   __write_allowed_signers
   __ok "Wrote $ALLOWED_SIGNERS"
+  if ! __register_github_signing_key; then
+    true
+  fi
   if ssh-add --apple-use-keychain "$SSH_KEY" >/dev/null 2>&1; then
     __ok "Added the key to the ssh-agent"
   else
@@ -645,6 +746,9 @@ cmd_doctor() {
     fi
   else
     __bad "Signing files are missing. Run: dot ssh"
+    failed=1
+  fi
+  if ! __check_github_signing_key; then
     failed=1
   fi
 

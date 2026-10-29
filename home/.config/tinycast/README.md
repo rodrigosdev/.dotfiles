@@ -4,7 +4,7 @@ Installed from the `abue-ammar/tinycast` cask in `packages/bundle`.
 
 `settings.json` holds the launcher shortcut, window-management shortcuts, clipboard, and emoji search. Tinycast keeps its own preferences as the source of truth until Settings File is turned on.
 
-1. Stow this directory before opening Tinycast: `stow home` from the repo.
+1. Link this directory before opening Tinycast: `dot stow` from the repo.
 2. In Tinycast, open Settings, Backup, Settings File. When it finds this file, choose Import.
 3. Confirm General, App Launcher is Command-Space, and turn on Launch at login.
 4. Grant Accessibility yourself. Clipboard paste and window actions need it.

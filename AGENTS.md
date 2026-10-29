@@ -6,27 +6,32 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 
 ```
 .dotfiles/
+├── .gitignore
 ├── dot                    # Setup CLI. Includes the GitHub SSH client block.
 ├── home/                  # Mirrors ~. Stow symlinks this onto $HOME
-│   └── .config/
-│       ├── git/
-│       │   ├── config     # Git settings
-│       │   └── ignore     # Global gitignore
-│       ├── ghostty/
-│       │   └── config
-│       ├── tinycast/
-│       │   ├── README.md
-│       │   └── settings.json
-│       ├── fish/
-│       │   ├── AGENTS.md
-│       │   ├── config.fish
-│       │   ├── fish_plugins    # Fisher plugin list
-│       │   ├── completions/
-│       │   │   └── dot.fish
-│       │   └── conf.d/         # PATH, aliases, prompt, colors
-│       └── starship.toml
+│   ├── .config/
+│   │   ├── git/
+│   │   │   ├── config     # Git settings
+│   │   │   └── ignore     # Global gitignore
+│   │   ├── ghostty/
+│   │   │   └── config
+│   │   ├── tinycast/
+│   │   │   ├── README.md
+│   │   │   └── settings.json
+│   │   ├── fish/
+│   │   │   ├── AGENTS.md
+│   │   │   ├── config.fish
+│   │   │   ├── fish_plugins    # Fisher plugin list
+│   │   │   ├── completions/
+│   │   │   │   └── dot.fish
+│   │   │   └── conf.d/         # PATH, aliases, interactive tools, colors
+│   │   └── starship.toml
+│   └── .t3/
+│       └── userdata/
+│           └── themes/
+│               └── oscura-midnight.json
 ├── packages/
-│   └── bundle             # Homebrew formulas and casks
+│   └── bundle             # Homebrew formulae and casks
 └── AGENTS.md
 ```
 
@@ -43,6 +48,7 @@ Repo path: `~/Code/.dotfiles`.
 | Fish | `home/.config/fish/` |
 | Starship | `home/.config/starship.toml` |
 | Tinycast | `home/.config/tinycast/settings.json` |
+| T3 theme | `home/.t3/userdata/themes/oscura-midnight.json` |
 | Setup CLI and GitHub SSH client block | `dot` |
 | Refresh symlinks | `dot stow` |
 
@@ -51,7 +57,7 @@ Repo path: `~/Code/.dotfiles`.
 - `home/` mirrors `~`. A file at `home/.config/git/config` becomes `~/.config/git/config`.
 - Edit tracked config in this repo. Live files under `~` are symlinks back here.
 - One tool per directory under `home/.config/`.
-- `packages/bundle` is the full app list for this machine. Formulas and casks both go there.
+- `packages/bundle` is the full app list for this machine. Formulae and casks both go there.
 - Keep a new config small. Tune it in place before splitting it into more files.
 - Git reads `~/.config/git/config` only while `~/.gitconfig` does not exist. Do not create `~/.gitconfig`.
 
@@ -70,17 +76,23 @@ Repo path: `~/Code/.dotfiles`.
 ```bash
 # from ~/Code/.dotfiles
 ./dot init                # packages, links, Fish login shell, Grok, Geist Mono, SSH
+./dot init --skip-ssh     # same setup, without the SSH key
+./dot update              # install missing packages, upgrade formulae, relink
 ./dot ssh                 # GitHub key, client config, signing files
 ./dot doctor              # check this machine
+./dot packages            # show whether each Brewfile package is installed
 ./dot link                # symlink dot into ~/.local/bin
+./dot unlink              # remove that symlink
 ./dot grok                # install Grok from https://x.ai/cli/install.sh
 ./dot stow                # link home/ onto ~
+./dot help                # show help
 brew bundle --file=packages/bundle
 ```
 
 ## NOTES
 
 - Tinycast ignores `settings.json` until Settings, Backup, Settings File is enabled and the existing file is imported. See `home/.config/tinycast/README.md`.
+- The T3 theme is `home/.t3/userdata/themes/oscura-midnight.json`. `~/.t3` and `~/.t3/userdata` stay real directories, so `dot stow` links the whole `themes` directory. T3 refuses a symlinked theme file. `~/.t3/userdata/settings.json` stays out of the repo.
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it next to the stowed files. Do not replace `~/.config/fish` with a symlink.
 - `dot init` installs `jhillyerd/plugin-git` with `fisher install`. The plugin files stay on the machine. After editing `fish_plugins`, run `fisher update` from Fish.
 - Ghostty reads `~/.config/ghostty/config`. Do not put settings in `~/Library/Application Support/com.mitchellh.ghostty/`; that file loads later and overrides this one.
@@ -88,7 +100,7 @@ brew bundle --file=packages/bundle
 - `dot` prints with the Oscura Midnight palette. `dot link` puts it on `PATH` through `~/.local/bin`.
 - `dot stow` runs `stow -R -v -d ~/Code/.dotfiles -t "$HOME" home`.
 - `dot grok` installs Grok Build with `https://x.ai/cli/install.sh`. The installer adds `~/.grok/bin` to Fish `PATH` in `config.fish` and refreshes `completions/grok.fish`. Leave that completion next to the stowed files.
-- `dot ssh` creates `~/.ssh/id_ed25519` with no passphrase, pins GitHub's host keys, and writes `~/.ssh/allowed_signers`. The private key stays on the machine.
-- Git signs commits and tags with that public key. Add the same key on GitHub as an authentication and signing key, then run `gh auth login`. Until then, SSH pushes and the GitHub CLI are not finished.
+- `dot ssh` creates `~/.ssh/id_ed25519` with no passphrase, pins GitHub's host keys, writes `~/.ssh/allowed_signers`, and uploads that public key as a GitHub signing key. The private key stays on the machine. Uploading needs `gh` logged in with the `admin:ssh_signing_key` scope.
+- Git signs commits and tags with that public key. `dot doctor` fails when GitHub does not have it as a signing key, because that is what makes commits show as verified. The same key is also the authentication key for SSH pushes. Add it on GitHub as an authentication key, then run `gh auth login`, before pushes and the GitHub CLI work.
 - `git-lfs` is in the Brewfile because `home/.config/git/config` sets `filter.lfs.required`.
 - Geist Mono is checked, not downloaded. The static OTF files belong in `~/Library/Fonts`.

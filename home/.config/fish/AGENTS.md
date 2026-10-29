@@ -8,6 +8,7 @@ Fish reads `config.fish` first, then `conf.d/*.fish` in alphabetical order.
 
 ```
 fish/
+├── AGENTS.md
 ├── config.fish          # Greeting off. The Grok installer adds ~/.grok/bin here.
 ├── fish_plugins         # Fisher plugin list
 ├── completions/
@@ -27,7 +28,7 @@ fish/
 | PATH | `conf.d/brew.fish` |
 | Prompt, fzf, zoxide | `conf.d/interactive.fish` and `../starship.toml` |
 | Shell colors | `conf.d/theme.fish` |
-| Git abbreviations | Installed by Fisher. See notes. |
+| Git abbreviations | Installed by Fisher. See Git. |
 
 ## CONVENTIONS
 
@@ -46,9 +47,9 @@ fish/
 
 ## GIT
 
-`fish_plugins` lists `jhillyerd/plugin-git`. Fisher installs it into `~/.config/fish` on this machine. Those files are not in the repo.
+`fish_plugins` lists `jhillyerd/plugin-git`. Fisher installs it into `~/.config/fish` on this machine. Those files are not in the repo. One of them is `conf.d/git.fish`, which loads between `brew.fish` and `interactive.fish`.
 
-The plugin provides the abbreviations (`g`, `gst`, `gd`, `ga`, `gc`, and the rest), plus `gwip`, `gunwip`, `gbda`, and `__git.default_branch`. Commit signing lives in `../git/config`.
+The plugin provides the abbreviations (`g`, `gst`, `gd`, `ga`, `gc`, and the rest), plus `gwip`, `gunwip`, `gbda`, and `__git.default_branch`. Commit signing lives in `../git/config`. GitHub shows those commits as verified after `dot ssh` uploads the public key as a signing key. `dot doctor` checks that upload.
 
 ## ANTI-PATTERNS
 
@@ -70,6 +71,6 @@ fisher update
 ## NOTES
 
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it.
-- `dot init` sets Fish as the default shell when `$SHELL` is not `command -v fish`. It adds that path to `/etc/shells` when it is missing, runs `chsh`, and then runs `fisher install jhillyerd/plugin-git`.
+- `dot init` sets Fish as the default shell when `$SHELL` is not `command -v fish`. It adds that path to `/etc/shells` when it is missing, runs `chsh -s`, and then runs `fisher install jhillyerd/plugin-git`.
 - `dot grok` runs the official installer. It keeps the marked block in `config.fish` that adds `~/.grok/bin` to `PATH`.
 - Prompt settings belong in `../starship.toml`, not in `conf.d/interactive.fish`. That file only starts Starship.
