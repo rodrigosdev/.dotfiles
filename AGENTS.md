@@ -7,6 +7,7 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 ```
 .dotfiles/
 ├── .gitignore
+├── README.md
 ├── dot                    # Setup CLI. Includes the GitHub SSH client block.
 ├── home/                  # Mirrors ~. Stow symlinks this onto $HOME
 │   ├── .config/
