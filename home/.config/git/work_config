@@ -1,4 +1,0 @@
-[user]
-	email = "rodrigo.santos@snyk.io"
-	name = "Rodrigo Santos"
-	signingKey = "~/.ssh/id_ed25519_github.pub"

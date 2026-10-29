@@ -1,3 +1,4 @@
 alias c 'clear'
-alias code 'cursor'
-alias pn 'pnpm'
+alias pbc 'pbcopy'
+alias pbp 'pbpaste'
+alias grep 'grep --color=auto --exclude-dir={.bzr,CVS,.git,.hg,.svn,.idea,.tox}'

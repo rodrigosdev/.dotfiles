@@ -1,11 +1,8 @@
-# Disable greeting
-set fish_greeting
+# Fish. This is the login shell.
 
-set -gx EDITOR cursor
+# No startup banner.
+set -g fish_greeting
 
-# pnpm
-set -gx PNPM_HOME "/Users/rodrigo/Library/pnpm"
-if not string match -q -- "$PNPM_HOME/bin" $PATH
-  set -gx PATH "$PNPM_HOME/bin" $PATH
-end
-# pnpm end
+# >>> grok installer >>>
+fish_add_path $HOME/.grok/bin
+# <<< grok installer <<<

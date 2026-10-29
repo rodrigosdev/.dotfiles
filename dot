@@ -1,0 +1,721 @@
+#!/usr/bin/env bash
+# Setup and checks for this machine. Bash 3.2. Accents are Oscura Midnight.
+set -euo pipefail
+
+DOTFILES_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+PACKAGES_FILE="$DOTFILES_DIR/packages/bundle"
+SSH_DIR="$HOME/.ssh"
+SSH_KEY="$SSH_DIR/id_ed25519"
+SSH_PUB="$SSH_KEY.pub"
+ALLOWED_SIGNERS="$SSH_DIR/allowed_signers"
+LINK_PATH="$HOME/.local/bin/dot"
+
+if [[ -t 1 ]]; then
+  ACCENT=$'\033[38;2;196;167;231m'
+  OKC=$'\033[38;2;80;180;140m'
+  BADC=$'\033[38;2;220;90;100m'
+  WARNC=$'\033[38;2;235;217;110m'
+  INFOC=$'\033[38;2;125;207;223m'
+  MUTED=$'\033[38;2;129;134;143m'
+  BOLD=$'\033[1m'
+  RESET=$'\033[0m'
+else
+  ACCENT='' OKC='' BADC='' WARNC='' INFOC='' MUTED='' BOLD='' RESET=''
+fi
+
+__header() { printf '\n%s==>%s %s%s%s\n' "$BOLD$ACCENT" "$RESET" "$BOLD" "$1" "$RESET"; }
+__ok() { printf '%s✓%s %s\n' "$OKC" "$RESET" "$1"; }
+__bad() { printf '%s✗%s %s\n' "$BADC" "$RESET" "$1" >&2; }
+__warn() { printf '%s⚠%s %s\n' "$WARNC" "$RESET" "$1"; }
+__info() { printf '%sℹ%s %s\n' "$INFOC" "$RESET" "$1"; }
+__step() { printf '\n%s[%s/%s]%s %s\n' "$BOLD" "$1" "$2" "$RESET" "$3"; }
+
+__have() { command -v "$1" >/dev/null 2>&1; }
+
+__brew_env() {
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+}
+
+__git_email() {
+  local email
+  email="$(git config --global --get user.email 2>/dev/null || true)"
+  if [[ -z "$email" ]]; then
+    email="hello@rodrigosantos.dev"
+  fi
+  printf '%s\n' "$email"
+}
+
+# Prints "formula<TAB>name" or "cask<TAB>name" for each Brewfile entry.
+__brewfile_entries() {
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    if [[ "$line" =~ ^[[:space:]]*brew[[:space:]]+\"([^\"]+)\" ]]; then
+      printf 'formula\t%s\n' "${BASH_REMATCH[1]}"
+    elif [[ "$line" =~ ^[[:space:]]*cask[[:space:]]+\"([^\"]+)\" ]]; then
+      printf 'cask\t%s\n' "${BASH_REMATCH[1]##*/}"
+    fi
+  done < "$PACKAGES_FILE"
+}
+
+__mode() { stat -f '%Lp' "$1"; }
+
+__font_present() {
+  local name="$1"
+  [[ -f "$HOME/Library/Fonts/$name" || -f "/Library/Fonts/$name" ]]
+}
+
+# chsh rejects a shell that is not listed in /etc/shells. sudo chsh would change root.
+__setup_fish_shell() {
+  local fish_path
+  if ! __have fish; then
+    __bad "Fish is not installed"
+    return 1
+  fi
+  fish_path="$(command -v fish)"
+
+  if ! grep -qF "$fish_path" /etc/shells; then
+    __info "Adding Fish to /etc/shells"
+    if [[ -s /etc/shells ]] && [[ -n "$(tail -c 1 /etc/shells 2>/dev/null || true)" ]]; then
+      printf '\n%s\n' "$fish_path" | sudo tee -a /etc/shells >/dev/null || return 1
+    else
+      printf '%s\n' "$fish_path" | sudo tee -a /etc/shells >/dev/null || return 1
+    fi
+    __ok "Added Fish to /etc/shells"
+  fi
+
+  if [[ "${SHELL:-}" != "$fish_path" ]]; then
+    __info "Setting Fish as the default shell"
+    if ! chsh -s "$fish_path"; then
+      __bad "Could not change the default shell"
+      return 1
+    fi
+    __ok "Default shell changed to Fish"
+    __info "Log out and back in for the change to take effect"
+  else
+    __ok "Fish is already the default shell"
+  fi
+
+  __info "Installing Fish plugins"
+  if fish -c "fisher install jhillyerd/plugin-git" 2>/dev/null; then
+    __ok "Fish plugins installed"
+  else
+    __warn "Could not install some Fish plugins"
+  fi
+}
+
+__github_ssh_message() {
+  ssh -o BatchMode=yes -o ConnectTimeout=8 -T git@github.com 2>&1 || true
+}
+
+__stow() {
+  if ! __have stow; then
+    __bad "GNU Stow is not installed"
+    return 1
+  fi
+  # The repo lives in ~/Code, so Stow's default target would be ~/Code.
+  stow -R -v -d "$DOTFILES_DIR" -t "$HOME" home
+}
+
+__install_grok() {
+  if ! __have curl; then
+    __bad "curl is required to install Grok"
+    return 1
+  fi
+  __info "Installing Grok from https://x.ai/cli/install.sh"
+  # The login shell is Fish. The installer writes ~/.grok/bin into that config.
+  if curl -fsSL https://x.ai/cli/install.sh | SHELL="/opt/homebrew/bin/fish" bash; then
+    __ok "Grok is installed"
+  else
+    __bad "Grok install failed"
+    return 1
+  fi
+  rm -f "$DOTFILES_DIR"/home/.config/fish/config.fish.bak.*
+}
+
+__github_ssh_block() {
+  cat <<'EOF'
+# >>> dot github >>>
+# GitHub. The private key is ~/.ssh/id_ed25519, created by `dot ssh`.
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+  AddKeysToAgent yes
+  UseKeychain yes
+# <<< dot github <<<
+EOF
+}
+
+__install_ssh_config() {
+  local dest="$SSH_DIR/config"
+  local tmp
+  mkdir -p "$SSH_DIR"
+  chmod 700 "$SSH_DIR"
+  tmp="$(mktemp)"
+  if [[ -f "$dest" ]] && grep -q '# >>> dot github >>>' "$dest"; then
+    awk '
+      BEGIN { skip = 0 }
+      $0 == "# >>> dot github >>>" { skip = 1; next }
+      $0 == "# <<< dot github <<<" { skip = 0; next }
+      skip == 0 { print }
+    ' "$dest" > "$tmp"
+    if [[ -s "$tmp" && -n "$(tail -c 1 "$tmp" || true)" ]]; then
+      printf '\n' >> "$tmp"
+    fi
+    if [[ -s "$tmp" ]]; then
+      printf '\n' >> "$tmp"
+    fi
+    __github_ssh_block >> "$tmp"
+    install -m 600 "$tmp" "$dest"
+    rm -f "$tmp"
+    __ok "Refreshed the GitHub host in SSH config"
+    return 0
+  fi
+  if [[ -f "$dest" ]]; then
+    cat "$dest" > "$tmp"
+    if [[ -s "$tmp" && -n "$(tail -c 1 "$tmp" || true)" ]]; then
+      printf '\n' >> "$tmp"
+    fi
+    if [[ -s "$tmp" ]]; then
+      printf '\n' >> "$tmp"
+    fi
+    __github_ssh_block >> "$tmp"
+    install -m 600 "$tmp" "$dest"
+    rm -f "$tmp"
+    __ok "Added the GitHub host to SSH config"
+    return 0
+  fi
+  __github_ssh_block > "$tmp"
+  install -m 600 "$tmp" "$dest"
+  rm -f "$tmp"
+  __ok "Installed SSH config"
+}
+
+__github_host_keys() {
+  local known="$SSH_DIR/known_hosts"
+  local line
+  touch "$known"
+  chmod 644 "$known"
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    if ! grep -qxF "$line" "$known"; then
+      printf '%s\n' "$line" >> "$known"
+    fi
+  done <<'EOF'
+github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+EOF
+}
+
+__write_allowed_signers() {
+  local email key_type key_data
+  email="$(__git_email)"
+  read -r key_type key_data _ < "$SSH_PUB"
+  printf '%s namespaces="git" %s %s\n' "$email" "$key_type" "$key_data" > "$ALLOWED_SIGNERS"
+  chmod 644 "$ALLOWED_SIGNERS"
+}
+
+__copy_public_key() {
+  if pbcopy < "$SSH_PUB"; then
+    __ok "Copied the public key to the clipboard"
+  else
+    __warn "Could not copy the public key. It is at $SSH_PUB"
+  fi
+}
+
+__print_github_steps() {
+  local message pending=0
+  if [[ ! -f "$SSH_PUB" ]]; then
+    return 0
+  fi
+  message="$(__github_ssh_message)"
+  if [[ "$message" != *"successfully authenticated"* ]]; then
+    pending=1
+  fi
+  if ! __have gh || ! gh auth status >/dev/null 2>&1; then
+    pending=1
+  fi
+  if [[ "$pending" -eq 0 ]]; then
+    __ok "GitHub accepts the SSH key"
+    __ok "GitHub CLI is logged in"
+    return 0
+  fi
+  printf '\n%sStill needs your GitHub account%s\n' "$BOLD" "$RESET"
+  if [[ "$message" == *"successfully authenticated"* ]]; then
+    __ok "GitHub accepts the SSH key"
+  else
+    __warn "Add the public key as an authentication and signing key"
+    printf '  https://github.com/settings/ssh/new\n'
+  fi
+  if __have gh && gh auth status >/dev/null 2>&1; then
+    __ok "GitHub CLI is logged in"
+  else
+    __warn "Log in the GitHub CLI: gh auth login"
+  fi
+}
+
+cmd_help() {
+  cat <<EOF
+${BOLD}dot${RESET}  ${MUTED}setup for this machine${RESET}
+
+${BOLD}USAGE${RESET}
+  dot <command>
+
+${BOLD}COMMANDS${RESET}
+  init        Install packages, link configs, set Fish as the default shell, install Grok, check Geist Mono, create SSH
+  update      Install missing packages, upgrade formulae, and relink configs
+  doctor      Check tools, links, Git signing, SSH, and Geist Mono
+  stow        Relink home/ onto ~
+  grok        Install Grok with the official installer
+  ssh         Create the GitHub key, client config, and signing files
+  packages    Show whether each Brewfile package is installed
+  link        Symlink dot into ~/.local/bin
+  unlink      Remove that symlink
+  help        Show this help
+
+${BOLD}OPTIONS${RESET}
+  init --skip-ssh    Skip SSH key setup
+  -h, --help         Show this help
+EOF
+}
+
+cmd_stow() {
+  __header "Linking configs"
+  __stow
+  __ok "Linked home/ onto $HOME"
+}
+
+cmd_grok() {
+  __header "Grok"
+  __install_grok
+}
+
+cmd_link() {
+  mkdir -p "$HOME/.local/bin"
+  if [[ -e "$LINK_PATH" && ! -L "$LINK_PATH" ]]; then
+    __bad "Refusing to replace $LINK_PATH"
+    return 1
+  fi
+  ln -sfn "$DOTFILES_DIR/dot" "$LINK_PATH"
+  __ok "Linked $LINK_PATH"
+}
+
+cmd_unlink() {
+  if [[ -L "$LINK_PATH" ]] && [[ "$(realpath "$LINK_PATH")" == "$DOTFILES_DIR/dot" ]]; then
+    rm "$LINK_PATH"
+    __ok "Removed $LINK_PATH"
+    return 0
+  fi
+  __warn "No dot link at $LINK_PATH"
+}
+
+cmd_ssh() {
+  local email nested=0
+  if [[ "${1:-}" == "--nested" ]]; then
+    nested=1
+  fi
+  if [[ "$nested" -eq 0 ]]; then
+    __header "SSH and commit signing"
+  fi
+  mkdir -p "$SSH_DIR"
+  chmod 700 "$SSH_DIR"
+  email="$(__git_email)"
+  if [[ -f "$SSH_KEY" ]]; then
+    __ok "SSH key already exists at $SSH_KEY"
+  else
+    __info "Creating an ed25519 key for $email"
+    ssh-keygen -t ed25519 -C "$email" -f "$SSH_KEY" -N "" >/dev/null
+    __ok "Created $SSH_KEY"
+    __info "The key has no passphrase"
+  fi
+  chmod 600 "$SSH_KEY"
+  chmod 644 "$SSH_PUB"
+  __install_ssh_config
+  __github_host_keys
+  __ok "Pinned GitHub's host keys"
+  __write_allowed_signers
+  __ok "Wrote $ALLOWED_SIGNERS"
+  if ssh-add --apple-use-keychain "$SSH_KEY" >/dev/null 2>&1; then
+    __ok "Added the key to the ssh-agent"
+  else
+    __warn "Could not add the key to the ssh-agent"
+  fi
+  __copy_public_key
+  __info "Fingerprint: $(ssh-keygen -lf "$SSH_PUB")"
+  __print_github_steps
+}
+
+cmd_packages() {
+  local kind name installed missing=0
+  if [[ ! -f "$PACKAGES_FILE" ]]; then
+    __bad "Missing Brewfile at $PACKAGES_FILE"
+    return 1
+  fi
+  if ! __have brew; then
+    __bad "Homebrew is not installed"
+    return 1
+  fi
+  __header "Brewfile"
+  local formulae casks
+  formulae="$(brew list --formula)"
+  casks="$(brew list --cask)"
+  while IFS=$'\t' read -r kind name; do
+    if [[ "$kind" == formula ]]; then
+      installed="$formulae"
+    else
+      installed="$casks"
+    fi
+    if printf '%s\n' "$installed" | grep -qxF "$name"; then
+      __ok "$kind $name"
+    else
+      __bad "$kind $name is not installed"
+      missing=$((missing + 1))
+    fi
+  done < <(__brewfile_entries)
+  if [[ "$missing" -gt 0 ]]; then
+    __info "Install what is missing with: dot init"
+    return 1
+  fi
+  __ok "Brewfile packages are installed"
+}
+
+cmd_init() {
+  local skip_ssh=0 total=6 step=0 failed=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help) cmd_help; return 0 ;;
+      --skip-ssh) skip_ssh=1 ;;
+      *) __bad "Unknown option: $1"; return 1 ;;
+    esac
+    shift
+  done
+  if [[ "$skip_ssh" -eq 0 ]]; then
+    total=7
+  fi
+  __header "Setup"
+
+  step=$((step + 1))
+  __step "$step" "$total" "Homebrew"
+  if __have brew; then
+    __ok "Homebrew is installed"
+  else
+    __bad "Homebrew is not installed. Install it from https://brew.sh and run dot init again"
+    return 1
+  fi
+
+  step=$((step + 1))
+  __step "$step" "$total" "Brewfile packages"
+  if [[ ! -f "$PACKAGES_FILE" ]]; then
+    __bad "Missing Brewfile at $PACKAGES_FILE"
+    return 1
+  fi
+  if brew bundle --file="$PACKAGES_FILE"; then
+    __ok "Brewfile packages are installed"
+  else
+    __bad "Some packages failed to install"
+    failed=1
+  fi
+
+  step=$((step + 1))
+  __step "$step" "$total" "Configs"
+  if __stow; then
+    __ok "Linked home/ onto $HOME"
+  else
+    __bad "Could not link configs"
+    failed=1
+  fi
+
+  step=$((step + 1))
+  __step "$step" "$total" "Fish"
+  if __setup_fish_shell; then
+    true
+  else
+    failed=1
+  fi
+
+  step=$((step + 1))
+  __step "$step" "$total" "Grok"
+  if __install_grok; then
+    true
+  else
+    failed=1
+  fi
+
+  step=$((step + 1))
+  __step "$step" "$total" "Geist Mono"
+  local font missing_font=0 face
+  for face in GeistMono-Regular.otf GeistMono-Bold.otf GeistMono-Italic.otf GeistMono-BoldItalic.otf; do
+    if __font_present "$face"; then
+      __ok "$face"
+    else
+      __bad "$face is not installed"
+      missing_font=1
+    fi
+  done
+  if [[ "$missing_font" -eq 1 ]]; then
+    __info "Install the static Geist Mono OTF files into ~/Library/Fonts"
+    failed=1
+  fi
+
+  if [[ "$skip_ssh" -eq 0 ]]; then
+    step=$((step + 1))
+    __step "$step" "$total" "SSH and commit signing"
+    if cmd_ssh --nested; then
+      true
+    else
+      failed=1
+    fi
+  fi
+
+  if [[ "$failed" -ne 0 ]]; then
+    return 1
+  fi
+  __header "Setup finished"
+}
+
+cmd_update() {
+  local kind name outdated upgraded=0
+  __header "Updating packages"
+  if ! __have brew; then
+    __bad "Homebrew is not installed"
+    return 1
+  fi
+  brew update
+  if ! brew bundle --file="$PACKAGES_FILE"; then
+    __bad "Some packages failed to install"
+    return 1
+  fi
+  __ok "Brewfile packages are installed"
+  outdated="$(brew outdated --formula --quiet || true)"
+  while IFS=$'\t' read -r kind name; do
+    [[ "$kind" == formula ]] || continue
+    if printf '%s\n' "$outdated" | grep -qxF "$name"; then
+      __info "Upgrading $name"
+      brew upgrade "$name"
+      upgraded=1
+    fi
+  done < <(__brewfile_entries)
+  if [[ "$upgraded" -eq 0 ]]; then
+    __ok "Formulae are current"
+  fi
+  outdated="$(brew outdated --cask --quiet || true)"
+  local found=0
+  while IFS=$'\t' read -r kind name; do
+    [[ "$kind" == cask ]] || continue
+    if printf '%s\n' "$outdated" | grep -qxF "$name"; then
+      __warn "Cask $name is outdated. Upgrade with: brew upgrade --cask $name"
+      found=1
+    fi
+  done < <(__brewfile_entries)
+  if [[ "$found" -eq 0 ]]; then
+    __ok "Casks from the Brewfile are current"
+  fi
+  __header "Linking configs"
+  __stow
+  __ok "Linked home/ onto $HOME"
+}
+
+__check_link() {
+  local path="$1" resolved
+  if [[ ! -e "$path" ]]; then
+    __bad "Missing $path"
+    return 1
+  fi
+  resolved="$(realpath "$path")"
+  case "$resolved" in
+    "$DOTFILES_DIR"/*) __ok "$path" ;;
+    *) __bad "$path is outside this repo ($resolved)"; return 1 ;;
+  esac
+}
+
+cmd_doctor() {
+  local failed=0 face email key_type key_data
+  __header "Tools"
+  if __have brew; then __ok "Homebrew"; else __bad "Homebrew is not installed"; failed=1; fi
+  if __have git; then __ok "git ($(git --version | awk '{print $3}'))"; else __bad "git is not installed"; failed=1; fi
+  if __have stow; then __ok "stow"; else __bad "stow is not installed"; failed=1; fi
+  if __have fish; then __ok "fish"; else __bad "fish is not installed"; failed=1; fi
+  if __have starship; then __ok "starship"; else __bad "starship is not installed"; failed=1; fi
+  if __have gh; then __ok "gh"; else __bad "gh is not installed"; failed=1; fi
+  if __have git-lfs || git lfs version >/dev/null 2>&1; then
+    __ok "git-lfs"
+  else
+    __bad "git-lfs is not installed"
+    failed=1
+  fi
+  if [[ -x "$HOME/.grok/bin/grok" ]]; then
+    __ok "grok ($("$HOME/.grok/bin/grok" --version | awk 'NR==1 { print $2 }'))"
+  else
+    __bad "grok is not installed. Run: dot grok"
+    failed=1
+  fi
+
+  __header "Shell and font"
+  if __have fish && [[ "${SHELL:-}" == "$(command -v fish)" ]]; then
+    __ok "Fish is the default shell"
+  elif __have fish; then
+    __warn "Fish is not the default shell"
+  fi
+  for face in GeistMono-Regular.otf GeistMono-Bold.otf GeistMono-Italic.otf GeistMono-BoldItalic.otf; do
+    if __font_present "$face"; then
+      __ok "$face"
+    else
+      __bad "$face is not installed"
+      failed=1
+    fi
+  done
+
+  __header "Links"
+  local link
+  for link in \
+    "$HOME/.config/git/config" \
+    "$HOME/.config/git/ignore" \
+    "$HOME/.config/ghostty/config" \
+    "$HOME/.config/starship.toml" \
+    "$HOME/.config/fish/config.fish" \
+    "$HOME/.config/fish/conf.d/theme.fish" \
+    "$HOME/.config/fish/completions/dot.fish" \
+    "$HOME/.config/tinycast/settings.json"
+  do
+    __check_link "$link" || failed=1
+  done
+  if [[ -L "$LINK_PATH" ]] && [[ "$(realpath "$LINK_PATH")" == "$DOTFILES_DIR/dot" ]]; then
+    __ok "$LINK_PATH"
+  else
+    __warn "dot is not on PATH yet. Run: dot link"
+  fi
+
+  __header "Git"
+  if [[ -e "$HOME/.gitconfig" ]]; then
+    __bad "$HOME/.gitconfig exists, so Git ignores ~/.config/git/config"
+    failed=1
+  else
+    __ok "No ~/.gitconfig"
+  fi
+  email="$(__git_email)"
+  if [[ -n "$(git config --global --get user.name || true)" && -n "$(git config --global --get user.email || true)" ]]; then
+    __ok "Identity is $(git config --global --get user.name) <$email>"
+  else
+    __bad "Git identity is incomplete"
+    failed=1
+  fi
+  if [[ "$(git config --global --get gpg.format || true)" == "ssh" \
+    && "$(git config --global --get commit.gpgsign || true)" == "true" \
+    && "$(git config --global --get tag.gpgsign || true)" == "true" ]]; then
+    __ok "Commits and tags sign with SSH"
+  else
+    __bad "SSH commit signing is not fully enabled"
+    failed=1
+  fi
+  local signing signers
+  signing="$(git config --global --get user.signingkey || true)"
+  case "$signing" in
+    '~/.ssh/id_ed25519.pub'|"$HOME/.ssh/id_ed25519.pub")
+      __ok "Signing key is ~/.ssh/id_ed25519.pub"
+      ;;
+    *)
+      __bad "user.signingKey is not ~/.ssh/id_ed25519.pub"
+      failed=1
+      ;;
+  esac
+  signers="$(git config --global --get gpg.ssh.allowedSignersFile || true)"
+  case "$signers" in
+    '~/.ssh/allowed_signers'|"$HOME/.ssh/allowed_signers")
+      __ok "Allowed signers file is ~/.ssh/allowed_signers"
+      ;;
+    *)
+      __bad "gpg.ssh.allowedSignersFile is not set"
+      failed=1
+      ;;
+  esac
+  if [[ -f "$SSH_PUB" && -f "$ALLOWED_SIGNERS" ]]; then
+    read -r key_type key_data _ < "$SSH_PUB"
+    if grep -Fq -- "$email" "$ALLOWED_SIGNERS" && grep -Fq -- "$key_data" "$ALLOWED_SIGNERS"; then
+      __ok "Allowed signers match $email"
+    else
+      __bad "Allowed signers do not match the current key. Run: dot ssh"
+      failed=1
+    fi
+  else
+    __bad "Signing files are missing. Run: dot ssh"
+    failed=1
+  fi
+
+  __header "SSH"
+  if [[ -f "$SSH_KEY" && -f "$SSH_PUB" ]]; then
+    __ok "Key exists at $SSH_KEY"
+    if [[ "$(__mode "$SSH_DIR")" == "700" && "$(__mode "$SSH_KEY")" == "600" ]]; then
+      __ok "Permissions are 700 on ~/.ssh and 600 on the private key"
+    else
+      __bad "SSH permissions are too open"
+      failed=1
+    fi
+  else
+    __bad "SSH key is missing. Run: dot ssh"
+    failed=1
+  fi
+  if [[ -f "$SSH_DIR/config" ]] && grep -q 'IdentityFile ~/.ssh/id_ed25519' "$SSH_DIR/config"; then
+    __ok "SSH config uses the GitHub key"
+  else
+    __bad "SSH config is missing the GitHub key. Run: dot ssh"
+    failed=1
+  fi
+  if [[ -f "$SSH_DIR/known_hosts" ]] && grep -q '^github.com ssh-ed25519 ' "$SSH_DIR/known_hosts"; then
+    __ok "GitHub host key is pinned"
+  else
+    __bad "GitHub host key is not pinned. Run: dot ssh"
+    failed=1
+  fi
+  if [[ -f "$SSH_KEY" ]]; then
+    case "$(realpath "$SSH_KEY")" in
+      "$DOTFILES_DIR"/*)
+        __bad "The private key is inside the repo"
+        failed=1
+        ;;
+    esac
+  fi
+
+  if [[ "$failed" -ne 0 ]]; then
+    printf '\n'
+    __bad "Doctor found problems"
+    __print_github_steps
+    return 1
+  fi
+  printf '\n'
+  __ok "Local setup looks right"
+  __print_github_steps
+}
+
+main() {
+  local cmd="${1:-help}"
+  if [[ $# -gt 0 ]]; then
+    shift
+  fi
+  case "$cmd" in
+    init) cmd_init "$@" ;;
+    update) cmd_update "$@" ;;
+    doctor) cmd_doctor "$@" ;;
+    stow) cmd_stow "$@" ;;
+    grok) cmd_grok "$@" ;;
+    ssh) cmd_ssh "$@" ;;
+    packages) cmd_packages "$@" ;;
+    link) cmd_link "$@" ;;
+    unlink) cmd_unlink "$@" ;;
+    help|-h|--help) cmd_help ;;
+    *)
+      __bad "Unknown command: $cmd"
+      cmd_help
+      return 1
+      ;;
+  esac
+}
+
+__brew_env
+main "$@"

@@ -1,40 +1,61 @@
-# Vite Plus node shims can occasionally take longer than Starship's default
-# 500ms timeout to resolve. Give language-version commands a bit more room and
-# avoid probing Node in repos that merely contain JS/TS files.
+# Language-version probes get two seconds. Node is only checked in a real Node project.
 command_timeout = 2000
 
-# Put custom.scm right after directory
-format = "$directory${custom.scm}$all"
+format = "$directory$all"
+
+# Oscura Midnight, the Grok Build theme. Named colors replace Starship's
+# defaults. Blue is purple: that palette has no blue.
+palette = "oscura"
+
+[palettes.oscura]
+text = "#e4e4e4"
+accent = "#c4a7e7"
+black = "#0f1216"
+red = "#dc5a64"
+green = "#50b48c"
+yellow = "#ebd96e"
+blue = "#9b7ece"
+purple = "#9b7ece"
+cyan = "#7dcfdf"
+white = "#bebebe"
+bright-black = "#5e646c"
+bright-red = "#dc5a64"
+bright-green = "#8bc34a"
+bright-yellow = "#f1bd00"
+bright-blue = "#c4a7e7"
+bright-purple = "#c4a7e7"
+bright-cyan = "#7dcfdf"
+bright-white = "#e4e4e4"
 
 [buf]
 disabled = true
 
 [character]
 error_symbol = "[󰘧](bold red)"
-success_symbol = "[󰘧](bold green)"
+success_symbol = "[󰘧](bold accent)"
 
 [directory]
 truncate_to_repo = false
+style = "bold text"
 
 [dotnet]
 detect_files = ["global.json", "Directory.Build.props", "Directory.Build.targets", "Packages.props"]
 
 [git_branch]
-symbol = " "
+symbol = " "
+style = "bold accent"
 truncation_length = 18
 
 [golang]
-symbol = " "
+symbol = " "
 
 [lua]
-symbol = " "
+symbol = " "
 
 [nix_shell]
-symbol = " "
+symbol = " "
 
 [nodejs]
-# Only show Node for actual Node projects. This avoids unnecessary `node
-# --version` calls in repos that just happen to contain JS/TS files.
 detect_extensions = []
 detect_files = ["package.json", ".node-version", ".nvmrc", ".tool-versions"]
 detect_folders = ["node_modules"]

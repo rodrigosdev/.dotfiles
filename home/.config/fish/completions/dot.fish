@@ -1,0 +1,13 @@
+complete -c dot -f
+complete -c dot -n __fish_use_subcommand -a init -d 'Install packages, link configs, set Fish as the default shell, create SSH'
+complete -c dot -n __fish_use_subcommand -a update -d 'Install missing packages, upgrade formulae, relink configs'
+complete -c dot -n __fish_use_subcommand -a doctor -d 'Check tools, links, Git signing, SSH, and Geist Mono'
+complete -c dot -n __fish_use_subcommand -a stow -d 'Relink home/ onto ~'
+complete -c dot -n __fish_use_subcommand -a grok -d 'Install Grok with the official installer'
+complete -c dot -n __fish_use_subcommand -a ssh -d 'Create the GitHub key, client config, and signing files'
+complete -c dot -n __fish_use_subcommand -a packages -d 'Show whether each Brewfile package is installed'
+complete -c dot -n __fish_use_subcommand -a link -d 'Symlink dot into ~/.local/bin'
+complete -c dot -n __fish_use_subcommand -a unlink -d 'Remove the ~/.local/bin/dot symlink'
+complete -c dot -n __fish_use_subcommand -a help -d 'Show help'
+complete -c dot -n __fish_use_subcommand -s h -l help -d 'Show help'
+complete -c dot -n '__fish_seen_subcommand_from init' -l skip-ssh -d 'Skip SSH key setup'

@@ -8,7 +8,6 @@
 	gpgSign = true
 
 [core]
-	editor = "cursor"
 	fsmonitor = true
 
 [fetch]
@@ -23,6 +22,9 @@
 
 [gpg]
 	format = "ssh"
+
+[gpg "ssh"]
+	allowedSignersFile = ~/.ssh/allowed_signers
 
 [init]
 	defaultBranch = "main"
@@ -42,14 +44,4 @@
 [user]
 	email = "hello@rodrigosantos.dev"
 	name = "Rodrigo Santos"
-	signingkey = ~/.ssh/id_ed25519_github.pub
-
-[includeIf "gitdir:~/Code/Work/"]
-	path = "~/.config/git/work_config"
-
-[credential "https://github.com"]
-	helper = 
-	helper = !/opt/homebrew/bin/gh auth git-credential
-[credential "https://gist.github.com"]
-	helper = 
-	helper = !/opt/homebrew/bin/gh auth git-credential
+	signingKey = ~/.ssh/id_ed25519.pub
