@@ -26,10 +26,6 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 │   │   │   │   └── dot.fish
 │   │   │   └── conf.d/         # PATH, aliases, interactive tools, colors
 │   │   └── starship.toml
-│   └── .t3/
-│       └── userdata/
-│           └── themes/
-│               └── oscura-midnight.json
 ├── packages/
 │   └── bundle             # Homebrew formulae and casks
 └── AGENTS.md
@@ -48,7 +44,6 @@ Repo path: `~/Code/.dotfiles`.
 | Fish | `home/.config/fish/` |
 | Starship | `home/.config/starship.toml` |
 | Tinycast | `home/.config/tinycast/settings.json` |
-| T3 theme | `home/.t3/userdata/themes/oscura-midnight.json` |
 | Setup CLI and GitHub SSH client block | `dot` |
 | Refresh symlinks | `dot stow` |
 
@@ -77,7 +72,7 @@ Repo path: `~/Code/.dotfiles`.
 # from ~/Code/.dotfiles
 ./dot init                # packages, links, Fish login shell, Grok, Geist Mono, SSH
 ./dot init --skip-ssh     # same setup, without the SSH key
-./dot update              # install missing packages, upgrade formulae, relink
+./dot update              # install missing packages, upgrade formulae, relink, Geist Mono
 ./dot ssh                 # GitHub key, client config, signing files
 ./dot doctor              # check this machine
 ./dot packages            # show whether each Brewfile package is installed
@@ -92,7 +87,6 @@ brew bundle --file=packages/bundle
 ## NOTES
 
 - Tinycast ignores `settings.json` until Settings, Backup, Settings File is enabled and the existing file is imported. See `home/.config/tinycast/README.md`.
-- The T3 theme is `home/.t3/userdata/themes/oscura-midnight.json`. `~/.t3` and `~/.t3/userdata` stay real directories, so `dot stow` links the whole `themes` directory. T3 refuses a symlinked theme file. `~/.t3/userdata/settings.json` stays out of the repo.
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it next to the stowed files. Do not replace `~/.config/fish` with a symlink.
 - `dot init` installs `jhillyerd/plugin-git` with `fisher install`. The plugin files stay on the machine. After editing `fish_plugins`, run `fisher update` from Fish.
 - Ghostty reads `~/.config/ghostty/config`. Do not put settings in `~/Library/Application Support/com.mitchellh.ghostty/`; that file loads later and overrides this one.
@@ -103,4 +97,4 @@ brew bundle --file=packages/bundle
 - `dot ssh` creates `~/.ssh/id_ed25519` with no passphrase, pins GitHub's host keys, writes `~/.ssh/allowed_signers`, and uploads that public key as a GitHub signing key. The private key stays on the machine. Uploading needs `gh` logged in with the `admin:ssh_signing_key` scope.
 - Git signs commits and tags with that public key. `dot doctor` fails when GitHub does not have it as a signing key, because that is what makes commits show as verified. The same key is also the authentication key for SSH pushes. Add it on GitHub as an authentication key, then run `gh auth login`, before pushes and the GitHub CLI work.
 - `git-lfs` is in the Brewfile because `home/.config/git/config` sets `filter.lfs.required`.
-- Geist Mono is checked, not downloaded. The static OTF files belong in `~/Library/Fonts`.
+- Geist Mono comes from the latest `vercel/geist-font` GitHub release (`https://github.com/vercel/geist-font`). `dot init` and `dot update` copy `GeistMono/otf` into `~/Library/Fonts` when Regular, Bold, Italic, or Bold Italic is missing. The ttf, variable, and webfont files stay out. `dot doctor` only checks those four faces.

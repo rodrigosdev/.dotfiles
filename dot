@@ -69,6 +69,76 @@ __font_present() {
   [[ -f "$HOME/Library/Fonts/$name" || -f "/Library/Fonts/$name" ]]
 }
 
+# Ghostty uses these four faces. The release also includes the other static weights.
+__geist_faces() {
+  printf '%s\n' \
+    GeistMono-Regular.otf \
+    GeistMono-Bold.otf \
+    GeistMono-Italic.otf \
+    GeistMono-BoldItalic.otf
+}
+
+__geist_release_zip_url() {
+  local page tag
+  page="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/vercel/geist-font/releases/latest)"
+  tag="${page##*/}"
+  if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    return 1
+  fi
+  printf 'https://github.com/vercel/geist-font/releases/download/%s/geist-font-%s.zip\n' "$tag" "$tag"
+}
+
+# Copies static Geist Mono OTFs into ~/Library/Fonts. Skips the download when
+# the four faces are already installed. Leaves ttf, variable, and webfont files out.
+__install_geist_mono() {
+  local face ready=1 dest url tmp
+  while IFS= read -r face; do
+    if ! __font_present "$face"; then
+      ready=0
+    fi
+  done < <(__geist_faces)
+  if [[ "$ready" -eq 1 ]]; then
+    while IFS= read -r face; do
+      __ok "$face"
+    done < <(__geist_faces)
+    return 0
+  fi
+  if ! __have curl || ! __have unzip; then
+    __bad "curl and unzip are required to install Geist Mono"
+    return 1
+  fi
+  dest="$HOME/Library/Fonts"
+  mkdir -p "$dest"
+  if ! url="$(__geist_release_zip_url)"; then
+    __bad "Could not find the Geist Mono release"
+    return 1
+  fi
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/geist-mono.XXXXXX")"
+  __info "Downloading Geist Mono from $url"
+  if ! curl -fsSL -o "$tmp/geist.zip" "$url"; then
+    __bad "Could not download Geist Mono"
+    rm -rf "$tmp"
+    return 1
+  fi
+  # Only the static otf directory. Variable fonts live under variable/ and webfonts/.
+  if ! unzip -q -o -j "$tmp/geist.zip" 'geist-font/GeistMono/otf/*.otf' -d "$dest"; then
+    __bad "Could not install Geist Mono"
+    rm -rf "$tmp"
+    return 1
+  fi
+  rm -rf "$tmp"
+  ready=1
+  while IFS= read -r face; do
+    if __font_present "$face"; then
+      __ok "$face"
+    else
+      __bad "$face is not installed"
+      ready=0
+    fi
+  done < <(__geist_faces)
+  [[ "$ready" -eq 1 ]]
+}
+
 # chsh rejects a shell that is not listed in /etc/shells. sudo chsh would change root.
 __setup_fish_shell() {
   local fish_path
@@ -367,8 +437,8 @@ ${BOLD}USAGE${RESET}
   dot <command>
 
 ${BOLD}COMMANDS${RESET}
-  init        Install packages, link configs, set Fish as the default shell, install Grok, check Geist Mono, create SSH
-  update      Install missing packages, upgrade formulae, and relink configs
+  init        Install packages, link configs, set Fish as the default shell, install Grok, install Geist Mono, create SSH
+  update      Install missing packages, upgrade formulae, relink configs, and install Geist Mono
   doctor      Check tools, links, Git signing, the GitHub signing key, SSH, and Geist Mono
   stow        Relink home/ onto ~
   grok        Install Grok with the official installer
@@ -551,17 +621,9 @@ cmd_init() {
 
   step=$((step + 1))
   __step "$step" "$total" "Geist Mono"
-  local font missing_font=0 face
-  for face in GeistMono-Regular.otf GeistMono-Bold.otf GeistMono-Italic.otf GeistMono-BoldItalic.otf; do
-    if __font_present "$face"; then
-      __ok "$face"
-    else
-      __bad "$face is not installed"
-      missing_font=1
-    fi
-  done
-  if [[ "$missing_font" -eq 1 ]]; then
-    __info "Install the static Geist Mono OTF files into ~/Library/Fonts"
+  if __install_geist_mono; then
+    true
+  else
     failed=1
   fi
 
@@ -621,6 +683,10 @@ cmd_update() {
   __header "Linking configs"
   __stow
   __ok "Linked home/ onto $HOME"
+  __header "Geist Mono"
+  if ! __install_geist_mono; then
+    return 1
+  fi
 }
 
 __check_link() {
@@ -664,14 +730,19 @@ cmd_doctor() {
   elif __have fish; then
     __warn "Fish is not the default shell"
   fi
-  for face in GeistMono-Regular.otf GeistMono-Bold.otf GeistMono-Italic.otf GeistMono-BoldItalic.otf; do
+  local font_missing=0
+  while IFS= read -r face; do
     if __font_present "$face"; then
       __ok "$face"
     else
       __bad "$face is not installed"
+      font_missing=1
       failed=1
     fi
-  done
+  done < <(__geist_faces)
+  if [[ "$font_missing" -eq 1 ]]; then
+    __info "Run: dot update"
+  fi
 
   __header "Links"
   local link
