@@ -40,6 +40,33 @@ __brew_env() {
   fi
 }
 
+__ensure_brew() {
+  local script
+  if __have brew; then
+    __ok "Homebrew is installed"
+    return 0
+  fi
+  if ! __have curl; then
+    __bad "curl is required to install Homebrew"
+    return 1
+  fi
+  __info "Installing Homebrew. The installer asks you to press Return and may ask for your password."
+  if ! script="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+    __bad "Could not download the Homebrew installer"
+    return 1
+  fi
+  if ! /bin/bash -c "$script"; then
+    __bad "Homebrew install failed"
+    return 1
+  fi
+  __brew_env
+  if ! __have brew; then
+    __bad "Homebrew is not on PATH"
+    return 1
+  fi
+  __ok "Homebrew is installed"
+}
+
 __git_email() {
   local email
   email="$(git config --global --get user.email 2>/dev/null || true)"
@@ -437,7 +464,7 @@ ${BOLD}USAGE${RESET}
   dot <command>
 
 ${BOLD}COMMANDS${RESET}
-  init        Install packages, link configs, set Fish as the default shell, install Grok, install Geist Mono, create SSH
+  init        Install Homebrew when it is missing, then packages, links, Fish, Grok, Geist Mono, and SSH
   update      Install missing packages, upgrade formulae, relink configs, and install Geist Mono
   doctor      Check tools, links, Git signing, the GitHub signing key, SSH, and Geist Mono
   stow        Relink home/ onto ~
@@ -530,7 +557,7 @@ cmd_packages() {
     return 1
   fi
   if ! __have brew; then
-    __bad "Homebrew is not installed"
+    __bad "Homebrew is not installed. Run: dot init"
     return 1
   fi
   __header "Brewfile"
@@ -574,10 +601,7 @@ cmd_init() {
 
   step=$((step + 1))
   __step "$step" "$total" "Homebrew"
-  if __have brew; then
-    __ok "Homebrew is installed"
-  else
-    __bad "Homebrew is not installed. Install it from https://brew.sh and run dot init again"
+  if ! __ensure_brew; then
     return 1
   fi
 
@@ -647,7 +671,7 @@ cmd_update() {
   local kind name outdated upgraded=0
   __header "Updating packages"
   if ! __have brew; then
-    __bad "Homebrew is not installed"
+    __bad "Homebrew is not installed. Run: dot init"
     return 1
   fi
   brew update
@@ -705,7 +729,7 @@ __check_link() {
 cmd_doctor() {
   local failed=0 face email key_type key_data
   __header "Tools"
-  if __have brew; then __ok "Homebrew"; else __bad "Homebrew is not installed"; failed=1; fi
+  if __have brew; then __ok "Homebrew"; else __bad "Homebrew is not installed. Run: dot init"; failed=1; fi
   if __have git; then __ok "git ($(git --version | awk '{print $3}'))"; else __bad "git is not installed"; failed=1; fi
   if __have stow; then __ok "stow"; else __bad "stow is not installed"; failed=1; fi
   if __have fish; then __ok "fish"; else __bad "fish is not installed"; failed=1; fi
@@ -892,5 +916,7 @@ main() {
   esac
 }
 
-__brew_env
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  __brew_env
+  main "$@"
+fi

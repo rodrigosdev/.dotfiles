@@ -1,5 +1,5 @@
 complete -c dot -f
-complete -c dot -n __fish_use_subcommand -a init -d 'Install packages, link configs, set Fish as the default shell, create SSH'
+complete -c dot -n __fish_use_subcommand -a init -d 'Install Homebrew when missing, then packages, links, Fish, and SSH'
 complete -c dot -n __fish_use_subcommand -a update -d 'Install missing packages, upgrade formulae, relink configs'
 complete -c dot -n __fish_use_subcommand -a doctor -d 'Check tools, links, Git signing, the GitHub signing key, SSH, and Geist Mono'
 complete -c dot -n __fish_use_subcommand -a stow -d 'Relink home/ onto ~'
