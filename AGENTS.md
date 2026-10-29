@@ -28,6 +28,7 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 │   │   └── starship.toml
 ├── packages/
 │   └── bundle             # Homebrew formulae and casks
+├── README.md
 └── AGENTS.md
 ```
 
@@ -62,7 +63,7 @@ Repo path: `~/Code/.dotfiles`.
 - Putting secrets, tokens, or keys in this repo.
 - Adding a second Brewfile before this machine actually needs a split.
 - Installing a tool's plugins before that tool's config is tracked here.
-- Growing `dot` into a package manager, a second Brewfile, or configs for tools this machine does not use.
+- Growing `dot` into a package manager, a second Brewfile, or configs for tools this machine does not use. Homebrew is the one install the Brewfile cannot do. Only `dot init` installs it.
 - Stowing `~/.ssh`. A folded symlink would let `dot ssh` write the private key into this repo. `dot ssh` writes `~/.ssh/config` as a real file.
 - Adding `.stowrc`. The repo is `~/Code/.dotfiles`, so Stow's default target is `~/Code`. `dot stow` passes `-t "$HOME"`.
 
@@ -70,7 +71,7 @@ Repo path: `~/Code/.dotfiles`.
 
 ```bash
 # from ~/Code/.dotfiles
-./dot init                # packages, links, Fish login shell, Grok, Geist Mono, SSH
+./dot init                # Homebrew when missing, then packages, links, Fish login shell, Grok, Geist Mono, SSH
 ./dot init --skip-ssh     # same setup, without the SSH key
 ./dot update              # install missing packages, upgrade formulae, relink, Geist Mono
 ./dot ssh                 # GitHub key, client config, signing files
@@ -91,6 +92,7 @@ brew bundle --file=packages/bundle
 - `dot init` installs `jhillyerd/plugin-git` with `fisher install`. The plugin files stay on the machine. After editing `fish_plugins`, run `fisher update` from Fish.
 - Ghostty reads `~/.config/ghostty/config`. Do not put settings in `~/Library/Application Support/com.mitchellh.ghostty/`; that file loads later and overrides this one.
 - The login shell is Fish (`/opt/homebrew/bin/fish`). `dot init` compares `$SHELL` with `command -v fish`. When they differ, it appends that path to `/etc/shells` if it is missing, runs `chsh -s`, and tells you to log out and back in. `dot doctor` warns when `$SHELL` is not that path. Fish layout and commands are in `home/.config/fish/AGENTS.md`.
+- `dot init` installs Homebrew when `brew` is not on PATH. It runs https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh with `/bin/bash`, then `brew shellenv` in that same process. It does not append `shellenv` to Fish config or `~/.zprofile`. Fish PATH stays in `home/.config/fish/conf.d/brew.fish`. `dot update`, `dot packages`, and `dot doctor` do not install Homebrew. When `brew` is missing they say to run `dot init`.
 - `dot` prints with the Oscura Midnight palette. `dot link` puts it on `PATH` through `~/.local/bin`.
 - `dot stow` runs `stow -R -v -d ~/Code/.dotfiles -t "$HOME" home`.
 - `dot grok` installs Grok Build with `https://x.ai/cli/install.sh`. The installer adds `~/.grok/bin` to Fish `PATH` in `config.fish` and refreshes `completions/grok.fish`. Leave that completion next to the stowed files.

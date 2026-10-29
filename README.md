@@ -1,12 +1,14 @@
 # Set up this Mac
 
-This repo is the setup for this Apple Silicon Mac. `dot` installs the packages in `packages/bundle`, links `home/` onto `~` with GNU Stow, and sets up Fish, Grok, Geist Mono, and a GitHub SSH key.
+This repo is the setup for this Apple Silicon Mac. `dot` installs the packages in `packages/bundle`, links `home/` onto `~` with GNU Stow, and sets up Fish, Grok, Geist Mono, and a GitHub SSH key. When `brew` is not on PATH, `dot init` installs Homebrew first.
 
 ## Prepare the machine
 
-Install Homebrew from https://brew.sh. `dot init` exits immediately when Homebrew is not installed.
-
 Clone this repo to `~/Code/.dotfiles`. `dot` finds its files from the directory that contains the script.
+
+`dot init` installs Homebrew when `brew` is not on PATH. It downloads https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh and runs that script with `/bin/bash`. The installer asks you to press Return. It may ask for your password so it can create `/opt/homebrew`.
+
+After the installer returns, `dot init` runs `brew shellenv` in that same process. Fish gets `/opt/homebrew/bin` from `home/.config/fish/conf.d/brew.fish` when `dot init` links `home/`. `dot init` does not write `~/.config/fish/config.fish` or `~/.zprofile`. The official installer prints those shell lines and does not run them. The installer writes `/etc/paths.d/homebrew` when `/etc/paths.d` exists and sudo works.
 
 Stow's default target from `~/Code/.dotfiles` is `~/Code`. `dot` passes `-t "$HOME"`, so the link target is `~`.
 
@@ -27,7 +29,7 @@ From the clone:
 
 `./dot link` points `~/.local/bin/dot` at the script. It refuses to replace a regular file already at that path. Open a new Fish shell. `home/.config/fish/conf.d/brew.fish` adds `~/.local/bin` to `PATH`.
 
-If a step after the Homebrew check fails, `dot init` continues. It exits with status 1 at the end.
+If the Homebrew install fails, `dot init` stops. If a later step fails, `dot init` continues. It exits with status 1 at the end.
 
 To skip the SSH key, the GitHub host block, and the signing-key upload:
 
@@ -93,7 +95,7 @@ dot stow
 
 `dot stow` runs `stow -R` and does not pass `--adopt`. If a path in `~` is already a real file or directory, move it aside before you run `dot stow`.
 
-The app list is `packages/bundle`. `dot packages` prints whether each package is installed. The command exits with status 1 when any package is missing.
+The app list is `packages/bundle`. That list includes pnpm. `dot packages` prints whether each package is installed. The command exits with status 1 when any package is missing.
 
 ```bash
 dot packages
