@@ -15,6 +15,10 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 │   │   │   └── ignore     # Global gitignore
 │   │   ├── ghostty/
 │   │   │   └── config
+│   │   ├── rex/
+│   │   │   ├── init.lua
+│   │   │   └── themes/
+│   │   │       └── oscura-midnight
 │   │   ├── tinycast/
 │   │   │   ├── README.md
 │   │   │   └── settings.json
@@ -42,6 +46,7 @@ Repo path: `~/Code/.dotfiles`.
 | Git settings | `home/.config/git/config` |
 | Global gitignore | `home/.config/git/ignore` |
 | Ghostty | `home/.config/ghostty/config` |
+| Rex | `home/.config/rex/` |
 | Fish | `home/.config/fish/` |
 | Starship | `home/.config/starship.toml` |
 | Tinycast | `home/.config/tinycast/settings.json` |
@@ -91,6 +96,7 @@ brew bundle --file=packages/bundle
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it next to the stowed files. Do not replace `~/.config/fish` with a symlink.
 - `dot init` installs `jhillyerd/plugin-git` with `fisher install`. The plugin files stay on the machine. After editing `fish_plugins`, run `fisher update` from Fish.
 - Ghostty reads `~/.config/ghostty/config`. Do not put settings in `~/Library/Application Support/com.mitchellh.ghostty/`; that file loads later and overrides this one.
+- Rex reads `~/.config/rex/init.lua`. It does not watch that file. After an edit, run `rex config check`, then `rex config reload`. `home/.config/rex/themes/oscura-midnight` is Oscura Midnight in Ghostty's theme format, the same colors as Ghostty. `rex do import_oscura_midnight` imports it and selects it. That adds a custom theme each time. Rex for Mac is a beta app and is not in the Brewfile.
 - The login shell is Fish (`/opt/homebrew/bin/fish`). `dot init` compares `$SHELL` with `command -v fish`. When they differ, it appends that path to `/etc/shells` if it is missing, runs `chsh -s`, and tells you to log out and back in. `dot doctor` warns when `$SHELL` is not that path. Fish layout and commands are in `home/.config/fish/AGENTS.md`.
 - `dot init` installs Homebrew when `brew` is not on PATH. It runs https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh with `/bin/bash`, then `brew shellenv` in that same process. It does not append `shellenv` to Fish config or `~/.zprofile`. Fish PATH stays in `home/.config/fish/conf.d/brew.fish`. `dot update`, `dot packages`, and `dot doctor` do not install Homebrew. When `brew` is missing they say to run `dot init`.
 - `dot` prints with the Oscura Midnight palette. `dot link` puts it on `PATH` through `~/.local/bin`.

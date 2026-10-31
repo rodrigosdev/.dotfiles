@@ -774,6 +774,8 @@ cmd_doctor() {
     "$HOME/.config/git/config" \
     "$HOME/.config/git/ignore" \
     "$HOME/.config/ghostty/config" \
+    "$HOME/.config/rex/init.lua" \
+    "$HOME/.config/rex/themes/oscura-midnight" \
     "$HOME/.config/starship.toml" \
     "$HOME/.config/fish/config.fish" \
     "$HOME/.config/fish/conf.d/theme.fish" \
