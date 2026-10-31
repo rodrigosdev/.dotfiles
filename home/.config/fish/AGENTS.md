@@ -14,7 +14,7 @@ fish/
 ├── completions/
 │   └── dot.fish         # Completions for the dot command
 └── conf.d/
-    ├── aliases.fish     # c, pbc, pbp, grep
+    ├── aliases.fish     # c, lg, pbc, pbp, grep
     ├── brew.fish        # Homebrew and ~/.local/bin on PATH
     ├── interactive.fish # fzf, zoxide, starship
     ├── lazygit.fish     # LG_CONFIG_FILE
@@ -43,6 +43,7 @@ fish/
 | Alias | Runs |
 |-------|------|
 | `c` | `clear` |
+| `lg` | `lazygit` |
 | `pbc` | `pbcopy` |
 | `pbp` | `pbpaste` |
 | `grep` | `grep --color=auto`, skipping VCS and IDE directories |
