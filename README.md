@@ -70,7 +70,7 @@ dot doctor
 dot update
 ```
 
-`dot update` runs `brew update`. It installs packages missing from `packages/bundle`. It upgrades outdated formulae. It relinks `home/`. It installs Geist Mono when Regular, Bold, Italic, or Bold Italic is missing.
+`dot update` runs `brew update`. It installs packages missing from `packages/bundle`. It installs the latest Node.js LTS when that version is missing. It upgrades outdated formulae. It relinks `home/`. It installs Geist Mono when Regular, Bold, Italic, or Bold Italic is missing.
 
 When a cask from `packages/bundle` is outdated, `dot update` prints `brew upgrade --cask` for that cask. It does not upgrade the cask.
 
@@ -95,7 +95,7 @@ dot stow
 
 `dot stow` runs `stow -R` and does not pass `--adopt`. If a path in `~` is already a real file or directory, move it aside before you run `dot stow`.
 
-The app list is `packages/bundle`. That list includes pnpm. `dot packages` prints whether each package is installed. The command exits with status 1 when any package is missing.
+The app list is `packages/bundle`. That list includes pnpm and fnm. fnm installs Node. `dot init` and `dot update` install the latest Node.js LTS when it is missing, and fnm makes it the default when no default is set. `dot packages` prints whether each package is installed. The command exits with status 1 when any package is missing.
 
 ```bash
 dot packages

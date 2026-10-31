@@ -16,6 +16,7 @@ fish/
 └── conf.d/
     ├── aliases.fish     # c, lg, pbc, pbp, grep
     ├── brew.fish        # Homebrew and ~/.local/bin on PATH
+    ├── fnm.fish         # fnm, Node version on directory change
     ├── interactive.fish # fzf, zoxide, starship
     ├── lazygit.fish     # LG_CONFIG_FILE
     └── theme.fish       # Oscura Midnight shell colors
@@ -27,6 +28,7 @@ fish/
 |------|----------|
 | Add an alias | `conf.d/aliases.fish` |
 | PATH | `conf.d/brew.fish` |
+| Node versions | `conf.d/fnm.fish` |
 | Prompt, fzf, zoxide | `conf.d/interactive.fish` and `../starship.toml` |
 | Shell colors | `conf.d/theme.fish` |
 | Lazygit config path | `conf.d/lazygit.fish` |
@@ -77,4 +79,5 @@ fisher update
 - `dot init` sets Fish as the default shell when `$SHELL` is not `command -v fish`. It adds that path to `/etc/shells` when it is missing, runs `chsh -s`, and then runs `fisher install jhillyerd/plugin-git`.
 - `dot grok` runs the official installer. It keeps the marked block in `config.fish` that adds `~/.grok/bin` to `PATH`.
 - Prompt settings belong in `../starship.toml`, not in `conf.d/interactive.fish`. That file only starts Starship.
+- `conf.d/fnm.fish` loads for every Fish shell, including non-interactive ones. `brew.fish` loads first, so Homebrew's `fnm` is on `PATH`. The hook uses `--use-on-cd` and `--version-file-strategy=recursive`. It reads `.node-version`, `.nvmrc`, and `package.json` `engines.node` from the current directory and its parents. Do not pass `--corepack-enabled`. pnpm comes from the Brewfile, and corepack would shadow it.
 - `conf.d/lazygit.fish` exports `LG_CONFIG_FILE` to `~/.config/lazygit/config.yml`. The theme map lives in `../lazygit/config.yml`, not in this file. Do not use `set -Ux`. That writes `fish_variables` on this machine.

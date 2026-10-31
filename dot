@@ -115,6 +115,39 @@ __geist_release_zip_url() {
   printf 'https://github.com/vercel/geist-font/releases/download/%s/geist-font-%s.zip\n' "$tag" "$tag"
 }
 
+# Installs the latest Node.js LTS with fnm. fnm sets it as the default only
+# when no default exists, so a later run leaves a chosen default in place.
+# Node builds stay in fnm's own directory. Corepack stays off because the
+# Brewfile owns pnpm.
+__ensure_node() {
+  local remote version
+  if ! __have fnm; then
+    __bad "fnm is not installed"
+    return 1
+  fi
+  if ! remote="$(fnm list-remote --lts --latest)"; then
+    __bad "Could not find the Node.js LTS"
+    return 1
+  fi
+  remote="${remote%% *}"
+  if [[ ! "$remote" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    __bad "Could not find the Node.js LTS"
+    return 1
+  fi
+  if ! fnm list | grep -Eq "(^|[[:space:]])${remote}([[:space:]]|$)"; then
+    if ! fnm install --lts --progress never; then
+      __bad "Could not install Node.js $remote"
+      return 1
+    fi
+  fi
+  version="$(fnm default 2>/dev/null || true)"
+  if [[ -z "$version" ]]; then
+    __bad "No default Node.js version is set"
+    return 1
+  fi
+  __ok "Node.js default is $version"
+}
+
 # Copies static Geist Mono OTFs into ~/Library/Fonts. Skips the download when
 # the four faces are already installed. Leaves ttf, variable, and webfont files out.
 __install_geist_mono() {
@@ -464,9 +497,9 @@ ${BOLD}USAGE${RESET}
   dot <command>
 
 ${BOLD}COMMANDS${RESET}
-  init        Install Homebrew when it is missing, then packages, links, Fish, Grok, Geist Mono, and SSH
-  update      Install missing packages, upgrade formulae, relink configs, and install Geist Mono
-  doctor      Check tools, links, Git signing, the GitHub signing key, SSH, and Geist Mono
+  init        Install Homebrew when it is missing, then packages, the Node.js LTS, links, Fish, Grok, Geist Mono, and SSH
+  update      Install missing packages, the Node.js LTS, upgrade formulae, relink configs, and install Geist Mono
+  doctor      Check tools, the Node.js default, links, Git signing, the GitHub signing key, SSH, and Geist Mono
   stow        Relink home/ onto ~
   grok        Install Grok with the official installer
   ssh         Create the GitHub key, client config, signing files, and upload the signing key
@@ -585,7 +618,7 @@ cmd_packages() {
 }
 
 cmd_init() {
-  local skip_ssh=0 total=6 step=0 failed=0
+  local skip_ssh=0 total=7 step=0 failed=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -h|--help) cmd_help; return 0 ;;
@@ -595,7 +628,7 @@ cmd_init() {
     shift
   done
   if [[ "$skip_ssh" -eq 0 ]]; then
-    total=7
+    total=8
   fi
   __header "Setup"
 
@@ -615,6 +648,14 @@ cmd_init() {
     __ok "Brewfile packages are installed"
   else
     __bad "Some packages failed to install"
+    failed=1
+  fi
+
+  step=$((step + 1))
+  __step "$step" "$total" "Node.js"
+  if __ensure_node; then
+    true
+  else
     failed=1
   fi
 
@@ -680,6 +721,10 @@ cmd_update() {
     return 1
   fi
   __ok "Brewfile packages are installed"
+  __header "Node.js"
+  if ! __ensure_node; then
+    return 1
+  fi
   outdated="$(brew outdated --formula --quiet || true)"
   while IFS=$'\t' read -r kind name; do
     [[ "$kind" == formula ]] || continue
@@ -727,7 +772,7 @@ __check_link() {
 }
 
 cmd_doctor() {
-  local failed=0 face email key_type key_data
+  local failed=0 face email key_type key_data version
   __header "Tools"
   if __have brew; then __ok "Homebrew"; else __bad "Homebrew is not installed. Run: dot init"; failed=1; fi
   if __have git; then __ok "git ($(git --version | awk '{print $3}'))"; else __bad "git is not installed"; failed=1; fi
@@ -735,6 +780,19 @@ cmd_doctor() {
   if __have fish; then __ok "fish"; else __bad "fish is not installed"; failed=1; fi
   if __have starship; then __ok "starship"; else __bad "starship is not installed"; failed=1; fi
   if __have gh; then __ok "gh"; else __bad "gh is not installed"; failed=1; fi
+  if __have fnm; then
+    __ok "fnm ($(fnm --version | awk '{print $2}'))"
+    version="$(fnm default 2>/dev/null || true)"
+    if [[ -n "$version" ]]; then
+      __ok "Node.js default is $version"
+    else
+      __bad "No default Node.js version. Run: dot update"
+      failed=1
+    fi
+  else
+    __bad "fnm is not installed. Run: dot update"
+    failed=1
+  fi
   if __have git-lfs || git lfs version >/dev/null 2>&1; then
     __ok "git-lfs"
   else
@@ -779,6 +837,7 @@ cmd_doctor() {
     "$HOME/.config/rex/themes/oscura-midnight" \
     "$HOME/.config/starship.toml" \
     "$HOME/.config/fish/config.fish" \
+    "$HOME/.config/fish/conf.d/fnm.fish" \
     "$HOME/.config/fish/conf.d/lazygit.fish" \
     "$HOME/.config/fish/conf.d/theme.fish" \
     "$HOME/.config/fish/completions/dot.fish" \

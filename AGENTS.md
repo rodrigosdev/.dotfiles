@@ -30,7 +30,7 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 │   │   │   ├── fish_plugins    # Fisher plugin list
 │   │   │   ├── completions/
 │   │   │   │   └── dot.fish
-│   │   │   └── conf.d/         # PATH, aliases, interactive tools, colors, lazygit path
+│   │   │   └── conf.d/         # PATH, aliases, interactive tools, colors, lazygit path, fnm
 │   │   └── starship.toml
 ├── packages/
 │   └── bundle             # Homebrew formulae and casks
@@ -79,9 +79,9 @@ Repo path: `~/Code/.dotfiles`.
 
 ```bash
 # from ~/Code/.dotfiles
-./dot init                # Homebrew when missing, then packages, links, Fish login shell, Grok, Geist Mono, SSH
+./dot init                # Homebrew when missing, then packages, Node.js LTS, links, Fish login shell, Grok, Geist Mono, SSH
 ./dot init --skip-ssh     # same setup, without the SSH key
-./dot update              # install missing packages, upgrade formulae, relink, Geist Mono
+./dot update              # install missing packages, Node.js LTS, upgrade formulae, relink, Geist Mono
 ./dot ssh                 # GitHub key, client config, signing files
 ./dot doctor              # check this machine
 ./dot packages            # show whether each Brewfile package is installed
@@ -110,3 +110,4 @@ brew bundle --file=packages/bundle
 - Git signs commits and tags with that public key. `dot doctor` fails when GitHub does not have it as a signing key, because that is what makes commits show as verified. The same key is also the authentication key for SSH pushes. Add it on GitHub as an authentication key, then run `gh auth login`, before pushes and the GitHub CLI work.
 - `git-lfs` is in the Brewfile because `home/.config/git/config` sets `filter.lfs.required`.
 - Geist Mono comes from the latest `vercel/geist-font` GitHub release (`https://github.com/vercel/geist-font`). `dot init` and `dot update` copy `GeistMono/otf` into `~/Library/Fonts` when Regular, Bold, Italic, or Bold Italic is missing. The ttf, variable, and webfont files stay out. `dot doctor` only checks those four faces.
+- Node is installed with `fnm` from the Brewfile. `home/.config/fish/conf.d/fnm.fish` puts the active version on `PATH` in every Fish shell and switches versions on directory change. `dot init` and `dot update` install the latest LTS when that version is missing. `fnm` sets that version as the default only when no default exists. Node builds stay in fnm's directory, outside this repo. Do not install the `node` formula. Do not enable corepack. The Brewfile owns `pnpm`, and corepack would put another `pnpm` ahead of it.
