@@ -3,6 +3,7 @@
 cask_args appdir: "/Applications"
 
 tap "abue-ammar/tinycast"
+tap "anomalyco/tap"
 
 brew "btop"
 brew "fish"
@@ -25,6 +26,7 @@ cask "1password"
 cask "cleanshot"
 cask "discord"
 cask "ghostty"
+cask "anomalyco/tap/hex"
 cask "orbstack"
 cask "spotify"
 cask "abue-ammar/tinycast/tinycast"
