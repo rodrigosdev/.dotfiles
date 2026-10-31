@@ -17,6 +17,7 @@ fish/
     ├── aliases.fish     # c, pbc, pbp, grep
     ├── brew.fish        # Homebrew and ~/.local/bin on PATH
     ├── interactive.fish # fzf, zoxide, starship
+    ├── lazygit.fish     # LG_CONFIG_FILE
     └── theme.fish       # Oscura Midnight shell colors
 ```
 
@@ -28,6 +29,7 @@ fish/
 | PATH | `conf.d/brew.fish` |
 | Prompt, fzf, zoxide | `conf.d/interactive.fish` and `../starship.toml` |
 | Shell colors | `conf.d/theme.fish` |
+| Lazygit config path | `conf.d/lazygit.fish` |
 | Git abbreviations | Installed by Fisher. See Git. |
 
 ## CONVENTIONS
@@ -74,3 +76,4 @@ fisher update
 - `dot init` sets Fish as the default shell when `$SHELL` is not `command -v fish`. It adds that path to `/etc/shells` when it is missing, runs `chsh -s`, and then runs `fisher install jhillyerd/plugin-git`.
 - `dot grok` runs the official installer. It keeps the marked block in `config.fish` that adds `~/.grok/bin` to `PATH`.
 - Prompt settings belong in `../starship.toml`, not in `conf.d/interactive.fish`. That file only starts Starship.
+- `conf.d/lazygit.fish` exports `LG_CONFIG_FILE` to `~/.config/lazygit/config.yml`. The theme map lives in `../lazygit/config.yml`, not in this file. Do not use `set -Ux`. That writes `fish_variables` on this machine.

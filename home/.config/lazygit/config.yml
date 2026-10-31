@@ -1,0 +1,12 @@
+# `blue` is terminal slot 4, #9b7ece, not Ghostty's selection #343048.
+gui:
+  theme:
+    activeBorderColor:
+      - "#c4a7e7"
+      - bold
+    inactiveBorderColor:
+      - "#5e646c"
+    selectedLineBgColor:
+      - "#343048"
+    inactiveViewSelectedLineBgColor:
+      - "#343048"
