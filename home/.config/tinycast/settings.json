@@ -42,7 +42,13 @@
       "/System/Library/CoreServices/Finder.app",
       "~/Applications"
     ],
-    "apps": {}
+    "apps": {
+      "com.anysphere.sand": {
+        "shortcut": null,
+        "alias": "bot",
+        "showInLauncher": true
+      }
+    }
   },
   "systemSettings": {
     "enabled": true,
