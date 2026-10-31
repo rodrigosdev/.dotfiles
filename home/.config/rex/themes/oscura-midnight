@@ -1,0 +1,25 @@
+# Oscura Midnight, the Grok Build theme. Same colors as Ghostty.
+# Blue slots are purple: that palette has no blue.
+
+background = #030304
+foreground = #e4e4e4
+cursor-color = #c4a7e7
+cursor-text = #030304
+selection-background = #343048
+selection-foreground = #e4e4e4
+palette = 0=#0f1216
+palette = 1=#dc5a64
+palette = 2=#50b48c
+palette = 3=#ebd96e
+palette = 4=#9b7ece
+palette = 5=#9b7ece
+palette = 6=#7dcfdf
+palette = 7=#bebebe
+palette = 8=#5e646c
+palette = 9=#dc5a64
+palette = 10=#8bc34a
+palette = 11=#f1bd00
+palette = 12=#c4a7e7
+palette = 13=#c4a7e7
+palette = 14=#7dcfdf
+palette = 15=#e4e4e4
