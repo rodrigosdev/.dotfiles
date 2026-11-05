@@ -361,8 +361,31 @@ __stow() {
   # Finder drops .DS_Store files into home/. Git ignores them; Stow needs to as well.
   # --no-folding links files, never whole directories, so files an app writes
   # beside its config (such as ~/.config/rex/ssh_config) stay out of this repo.
-  stow -R -v --no-folding --ignore='\.DS_Store' -d "$DOTFILES_DIR" -t "$HOME" home || return 1
+  # AGENTS.md and README.md document this repo. They stay out of ~.
+  stow -R -v --no-folding --ignore='\.DS_Store' --ignore="$STOW_DOC_IGNORE" \
+    -d "$DOTFILES_DIR" -t "$HOME" home || return 1
+  __unlink_docs
   __link_claude_skills
+}
+
+STOW_DOC_IGNORE='(^|/)(AGENTS|README)\.md'
+
+__is_doc() {
+  [[ "$1" =~ (^|/)(AGENTS|README)\.md$ ]]
+}
+
+# Stow does not remove links for files it now ignores, so drop the ones an
+# older dot stow made.
+__unlink_docs() {
+  local tracked path
+  while IFS= read -r tracked; do
+    __is_doc "$tracked" || continue
+    path="$HOME/${tracked#home/}"
+    if [[ -L "$path" && "$(realpath "$path")" == "$DOTFILES_DIR/$tracked" ]]; then
+      rm "$path"
+      echo "UNLINK: ${tracked#home/}"
+    fi
+  done < <(git -C "$DOTFILES_DIR" ls-files home)
 }
 
 # Skills live once, in home/.agents/skills. Claude Code reads ~/.claude/skills,
@@ -997,6 +1020,13 @@ cmd_doctor() {
   local tracked
   while IFS= read -r tracked; do
     [[ "$(basename "$tracked")" == .DS_Store ]] && continue
+    if __is_doc "$tracked"; then
+      if [[ -L "$HOME/${tracked#home/}" ]]; then
+        __bad "$HOME/${tracked#home/} should not be linked. Run: dot stow"
+        failed=1
+      fi
+      continue
+    fi
     __check_link "$HOME/${tracked#home/}" || failed=1
   done < <(git -C "$DOTFILES_DIR" ls-files home)
   if [[ -L "$HOME/.claude/skills" && "$(readlink "$HOME/.claude/skills")" == "../.agents/skills" ]]; then
