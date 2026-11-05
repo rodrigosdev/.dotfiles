@@ -13,8 +13,6 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 │   │   ├── git/
 │   │   │   ├── config     # Git settings
 │   │   │   └── ignore     # Global gitignore
-│   │   ├── ghostty/
-│   │   │   └── config
 │   │   ├── lazygit/
 │   │   │   └── config.yml
 │   │   ├── rex/
@@ -47,7 +45,6 @@ Repo path: `~/Code/.dotfiles`.
 | Add or remove an app | `packages/bundle` |
 | Git settings | `home/.config/git/config` |
 | Global gitignore | `home/.config/git/ignore` |
-| Ghostty | `home/.config/ghostty/config` |
 | Lazygit | `home/.config/lazygit/config.yml` |
 | Rex | `home/.config/rex/` |
 | Fish | `home/.config/fish/` |
@@ -99,9 +96,8 @@ brew bundle --file=packages/bundle
 - Tinycast ignores `settings.json` until Settings, Backup, Settings File is enabled and the existing file is imported. See `home/.config/tinycast/README.md`.
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it next to the stowed files. Do not replace `~/.config/fish` with a symlink.
 - `dot init` installs `jhillyerd/plugin-git` with `fisher install`. The plugin files stay on the machine. After editing `fish_plugins`, run `fisher update` from Fish.
-- Ghostty reads `~/.config/ghostty/config`. Do not put settings in `~/Library/Application Support/com.mitchellh.ghostty/`; that file loads later and overrides this one.
 - Lazygit reads `home/.config/lazygit/config.yml` because Fish sets `LG_CONFIG_FILE` in `home/.config/fish/conf.d/lazygit.fish`. On macOS, with that variable unset, lazygit searches `~/Library/Application Support/lazygit/config.yml` first and creates it when no config exists. After that file exists, a stowed `~/.config/lazygit/config.yml` is ignored. Do not set `CONFIG_DIR`. State would be written next to the config, inside this repo. State stays in `~/Library/Application Support/lazygit/`. Do not set `nerdFontsVersion`. Geist Mono is not a Nerd Font.
-- Rex reads `~/.config/rex/init.lua`. It does not watch that file. After an edit, run `rex config check`, then `rex config reload`. `home/.config/rex/themes/oscura-midnight` is Oscura Midnight in Ghostty's theme format, the same colors as Ghostty. `rex do import_oscura_midnight` imports it and selects it. That adds a custom theme each time, so `dot init` and `dot rex` run it once and record that in `~/.local/state/dot/rex-oscura-midnight`. Rex has no command that lists themes. Delete that marker to import again. Both skip with a warning when `rex` or the Rex app is missing. Rex for Mac is a beta app and is not in the Brewfile.
+- Rex reads `~/.config/rex/init.lua`. It does not watch that file. After an edit, run `rex config check`, then `rex config reload`. `home/.config/rex/themes/oscura-midnight` is Oscura Midnight in Ghostty's theme format, which Rex imports. `rex do import_oscura_midnight` imports it and selects it. That adds a custom theme each time, so `dot init` and `dot rex` run it once and record that in `~/.local/state/dot/rex-oscura-midnight`. Rex has no command that lists themes. Delete that marker to import again. Both skip with a warning when `rex` or the Rex app is missing. Rex for Mac is a beta app and is not in the Brewfile.
 - The login shell is Fish (`/opt/homebrew/bin/fish`). `dot init` compares `$SHELL` with `command -v fish`. When they differ, it appends that path to `/etc/shells` if it is missing, runs `chsh -s`, and tells you to log out and back in. `dot doctor` warns when `$SHELL` is not that path. Fish layout and commands are in `home/.config/fish/AGENTS.md`.
 - `dot init` installs Homebrew when `brew` is not on PATH. It runs https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh with `/bin/bash`, then `brew shellenv` in that same process. It does not append `shellenv` to Fish config or `~/.zprofile`. Fish PATH stays in `home/.config/fish/conf.d/brew.fish`. `dot update`, `dot packages`, and `dot doctor` do not install Homebrew. When `brew` is missing they say to run `dot init`.
 - `dot` prints with the Oscura Midnight palette. `dot link` puts it on `PATH` through `~/.local/bin`.

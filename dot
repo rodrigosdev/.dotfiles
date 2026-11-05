@@ -96,7 +96,7 @@ __font_present() {
   [[ -f "$HOME/Library/Fonts/$name" || -f "/Library/Fonts/$name" ]]
 }
 
-# Ghostty uses these four faces. The release also includes the other static weights.
+# Rex uses these four faces. The release also includes the other static weights.
 __geist_faces() {
   printf '%s\n' \
     GeistMono-Regular.otf \
@@ -881,7 +881,6 @@ cmd_doctor() {
   for link in \
     "$HOME/.config/git/config" \
     "$HOME/.config/git/ignore" \
-    "$HOME/.config/ghostty/config" \
     "$HOME/.config/lazygit/config.yml" \
     "$HOME/.config/rex/init.lua" \
     "$HOME/.config/rex/themes/oscura-midnight" \

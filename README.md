@@ -81,7 +81,7 @@ Geist Mono comes from the latest release at https://github.com/vercel/geist-font
 - `GeistMono-Italic.otf`
 - `GeistMono-BoldItalic.otf`
 
-Ghostty sets those faces in `home/.config/ghostty/config`.
+Rex uses those faces. Pick Geist Mono in Rex Settings; Rex has no config setting for the font.
 
 ## Edit a config
 

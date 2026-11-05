@@ -1,4 +1,4 @@
-# Oscura Midnight, the Grok Build theme. Same colors as Ghostty and Starship.
+# Oscura Midnight, the Grok Build theme. Same colors as Starship.
 set -g fish_color_normal e4e4e4
 set -g fish_color_command c4a7e7
 set -g fish_color_param bebebe

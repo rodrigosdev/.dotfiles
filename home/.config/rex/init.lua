@@ -8,7 +8,7 @@
 -- Toggle the sidebar.
 rex.bind("cmd+b", "client.sidebar.toggle")
 
--- Themes are app settings. Rex imports Ghostty theme files and selects the
+-- Themes are app settings. Rex imports Ghostty-format theme files and selects the
 -- result. This adds a custom theme each time it runs.
 --   rex do import_oscura_midnight
 rex.action({
