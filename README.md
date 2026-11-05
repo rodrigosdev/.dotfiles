@@ -1,50 +1,37 @@
 # Set up this Mac
 
-This repo is the setup for this Apple Silicon Mac. `dot` installs the packages in `packages/bundle`, links `home/` onto `~` with GNU Stow, and sets up Fish, Grok, Geist Mono, and a GitHub SSH key. When `brew` is not on PATH, `dot init` installs Homebrew first.
+This repo configures an Apple Silicon Mac. The `dot` script installs the packages in `packages/bundle`, links `home/` onto `~` with GNU Stow, and sets up Fish, Grok, Geist Mono, Rex, and a GitHub SSH key. Clone it to `~/Code/.dotfiles`, because `dot` finds its files from the directory that holds the script.
 
-## Prepare the machine
+## Before you start
 
-Clone this repo to `~/Code/.dotfiles`. `dot` finds its files from the directory that contains the script.
-
-`dot init` installs Homebrew when `brew` is not on PATH. It downloads https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh and runs that script with `/bin/bash`. The installer asks you to press Return. It may ask for your password so it can create `/opt/homebrew`.
-
-After the installer returns, `dot init` runs `brew shellenv` in that same process. Fish gets `/opt/homebrew/bin` from `home/.config/fish/conf.d/brew.fish` when `dot init` links `home/`. `dot init` does not write `~/.config/fish/config.fish` or `~/.zprofile`. The official installer prints those shell lines and does not run them. The installer writes `/etc/paths.d/homebrew` when `/etc/paths.d` exists and sudo works.
-
-Stow's default target from `~/Code/.dotfiles` is `~/Code`. `dot` passes `-t "$HOME"`, so the link target is `~`.
-
-If `~/.gitconfig` exists, delete it before setup. Git ignores `~/.config/git/config` while `~/.gitconfig` exists. `dot doctor` fails while `~/.gitconfig` is present.
-
-When the Fish path is missing from `/etc/shells`, `dot init` appends it with `sudo`. `sudo` asks for your password. When `$SHELL` is not Fish, `dot init` runs `chsh -s`. Log out and back in after that change.
-
-`dot init` creates `~/.ssh/id_ed25519` with no passphrase when that key is missing. The private key stays in `~/.ssh`.
+- Delete `~/.gitconfig` if it exists. Git ignores `~/.config/git/config` while that file is present, and `dot doctor` fails.
+- Keep the SSH private key outside the repo. `dot doctor` fails when `~/.ssh/id_ed25519` resolves to a path inside the clone.
 
 ## Run setup
-
-From the clone:
 
 ```bash
 ./dot init
 ./dot link
 ```
 
-`./dot link` points `~/.local/bin/dot` at the script. It refuses to replace a regular file already at that path. Open a new Fish shell. `home/.config/fish/conf.d/brew.fish` adds `~/.local/bin` to `PATH`.
+`dot init` runs these steps in order:
 
-If the Homebrew install fails, `dot init` stops. If a later step fails, `dot init` continues. It exits with status 1 at the end.
+1. Installs Homebrew when `brew` is not on `PATH`. It runs the official installer with `/bin/bash`. The installer asks you to press Return and may ask for your password to create `/opt/homebrew`.
+2. Installs the packages in `packages/bundle` and the latest Node.js LTS.
+3. Links `home/` onto `~`.
+4. Makes Fish the login shell. When the Fish path is missing from `/etc/shells`, it appends the path with `sudo`. When `$SHELL` is not Fish, it runs `chsh -s`. Log out and back in afterward.
+5. Installs Grok, Geist Mono, and the Rex settings.
+6. Creates `~/.ssh/id_ed25519` with no passphrase when the key is missing, then writes the GitHub SSH client block and uploads the signing key.
 
-To skip the SSH key, the GitHub host block, and the signing-key upload:
+`dot link` points `~/.local/bin/dot` at the script and refuses to replace a regular file at that path. Open a new Fish shell afterward. `home/.config/fish/conf.d/brew.fish` adds `/opt/homebrew/bin` and `~/.local/bin` to `PATH`. `dot init` does not write `~/.zprofile` or `config.fish`.
 
-```bash
-./dot init --skip-ssh
-./dot link
-```
+If the Homebrew install fails, `dot init` stops. If a later step fails, it continues and exits with status 1 at the end. If only the Grok install fails, run `dot grok` afterward.
 
-If the Grok install fails, run `dot grok` after the other steps.
+To skip the SSH key, the GitHub host block, and the signing-key upload, run `./dot init --skip-ssh`.
 
 ## Sign in to GitHub
 
-Git signs commits and tags with `~/.ssh/id_ed25519.pub`. `home/.config/git/config` sets that behavior.
-
-The signing-key upload needs `gh` logged in with the `admin:ssh_signing_key` scope. `dot ssh` copies the public key to the clipboard when `pbcopy` succeeds.
+Git signs commits and tags with `~/.ssh/id_ed25519.pub`, as set in `home/.config/git/config`. The upload needs `gh` logged in with the `admin:ssh_signing_key` scope.
 
 ```bash
 gh auth login
@@ -52,65 +39,57 @@ gh auth refresh -h github.com -s admin:ssh_signing_key
 dot ssh
 ```
 
-Add the same public key as an authentication key at https://github.com/settings/ssh/new. `dot ssh` uploads only a signing key. The same command warns until SSH to GitHub authenticates. `dot doctor` fails until GitHub has the key as a signing key. Commits stay unverified until the signing-key upload succeeds.
+`dot ssh` copies the public key to the clipboard when `pbcopy` works. It uploads the key as a signing key only, so also add it as an authentication key at https://github.com/settings/ssh/new. Until you do, `dot ssh` warns that SSH to GitHub fails. Until the signing-key upload succeeds, `dot doctor` fails and commits show as unverified.
 
-Keep the private key outside this repo. `dot doctor` fails when `~/.ssh/id_ed25519` resolves to a path inside the clone.
-
-## Check this machine
+## Check the machine
 
 ```bash
 dot doctor
 ```
 
-`dot doctor` checks the tools, the links, Rex, Git signing, the GitHub signing key, SSH, and Geist Mono.
+It checks the tools, the links, Rex, Git signing, the GitHub signing key, SSH, and Geist Mono.
 
-## Update packages
+## Update
 
 ```bash
 dot update
 ```
 
-`dot update` runs `brew update`. It installs packages missing from `packages/bundle`. It installs the latest Node.js LTS when that version is missing. It upgrades outdated formulae. It relinks `home/`. It installs Geist Mono when Regular, Bold, Italic, or Bold Italic is missing.
+`dot update` runs `brew update`, installs missing packages and the latest Node.js LTS, upgrades outdated formulae, relinks `home/`, installs Geist Mono when a face is missing, and applies the Rex steps. For an outdated cask it prints the `brew upgrade --cask` command and does not run it.
 
-When a cask from `packages/bundle` is outdated, `dot update` prints `brew upgrade --cask` for that cask. It does not upgrade the cask.
+`dot packages` prints whether each package in `packages/bundle` is installed. It exits with status 1 when one is missing.
 
-Geist Mono comes from the latest release at https://github.com/vercel/geist-font. When one of the four faces below is missing, the installer unzips all of `GeistMono/otf` into `~/Library/Fonts`. The unzip also copies the other static weights from `GeistMono/otf`. `dot doctor` checks these four files.
+## Geist Mono
+
+Geist Mono comes from the latest release at https://github.com/vercel/geist-font. The installer copies all of `GeistMono/otf` into `~/Library/Fonts` when any of these files is missing. `dot doctor` checks only these four.
 
 - `GeistMono-Regular.otf`
 - `GeistMono-Bold.otf`
 - `GeistMono-Italic.otf`
 - `GeistMono-BoldItalic.otf`
 
-Rex uses those faces. The font is a Rex app setting, not an `init.lua` setting. `home/.config/rex/macos-defaults.conf` sets it, and `dot rex` writes it. Relaunch Rex after that file changes.
+Rex uses these faces. The font is a Rex app setting, so it lives in `home/.config/rex/macos-defaults.conf` and not in `init.lua`.
 
-## Set up Rex
+## Rex
 
 ```bash
 dot rex
 ```
 
-`dot rex` writes the app settings in `home/.config/rex/macos-defaults.conf`, checks and reloads `init.lua`, imports the Oscura Midnight theme when Rex does not have it, and runs `rex terminfo setup`. `dot init` and `dot update` run the same steps. The theme import needs Rex open with Remote Control on.
+`dot rex` writes the app settings from `home/.config/rex/macos-defaults.conf`, checks and reloads `init.lua`, imports the Oscura Midnight theme when Rex does not have it, and runs `rex terminfo setup`. `dot init` and `dot update` run the same steps. The theme import needs Rex open with Remote Control on. Relaunch Rex after a settings change.
 
 ## Edit a config
 
-Edit the tracked file under `home/`. Stow links `home/.config/git/config` to `~/.config/git/config`. The Git name and email are `user.name` and `user.email` in `home/.config/git/config`.
+Edit the tracked file under `home/`. Stow links `home/.config/git/config` to `~/.config/git/config`. Set the Git name and email as `user.name` and `user.email` in that file.
 
-After you add or move a file under `home/`, relink it.
-
-```bash
-dot stow
-```
-
-`dot stow` runs `stow -R --no-folding` and does not pass `--adopt`. Each file is its own symlink, so files an app writes into `~/.config/<tool>` stay out of this repo. If a path in `~` is already a real file or directory, move it aside before you run `dot stow`.
-
-The app list is `packages/bundle`. That list includes pnpm and fnm. fnm installs Node. `dot init` and `dot update` install the latest Node.js LTS when it is missing, and fnm makes it the default when no default is set. `dot packages` prints whether each package is installed. The command exits with status 1 when any package is missing.
-
-```bash
-dot packages
-```
+After you add or move a file under `home/`, run `dot stow`. It runs `stow -R --no-folding` without `--adopt`, so each file is its own symlink and files an app writes into `~/.config/<tool>` stay out of the repo. If a path in `~` is already a real file or directory, move it aside first.
 
 After you change `home/.config/fish/fish_plugins`, run `fisher update` from Fish.
 
-`dot help` prints the command list.
+Run `dot help` for the full command list.
 
-Agent notes for this repo are in `AGENTS.md`. Fish notes are in `home/.config/fish/AGENTS.md`. Tinycast import steps are in `home/.config/tinycast/README.md`.
+## More notes
+
+- `AGENTS.md` documents the repo layout and conventions.
+- `home/.config/fish/AGENTS.md` documents Fish.
+- `home/.config/tinycast/README.md` has the Tinycast import steps.
