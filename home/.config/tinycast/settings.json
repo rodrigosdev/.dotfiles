@@ -11,9 +11,15 @@
   },
   "appearance": {
     "theme": "system",
+    "animations": true,
     "interfaceSize": "large",
     "compactMode": false,
-    "showFavoritesInCompactMode": true,
+    "compactBarCommands": [
+      "command:clipboard-history",
+      "command:search-emoji",
+      "command:search-files",
+      "command:search-quicklinks"
+    ],
     "followCursorAcrossDisplays": true,
     "dragToReposition": false
   },
@@ -79,6 +85,7 @@
     "enabled": false,
     "webSearch": false,
     "choices": true,
+    "expandsReasoning": false,
     "systemPrompt": "",
     "systemPromptEnabled": true,
     "retentionDays": "forever",
@@ -94,6 +101,7 @@
   "dictation": {
     "mode": "toggle",
     "shortcut": null,
+    "playsSounds": true,
     "model": "redux",
     "microphone": null,
     "destination": "paste",
@@ -116,6 +124,7 @@
     "enabled": false,
     "rendersMarkdown": true,
     "showsFormattingBar": true,
+    "showsInMenuBar": false,
     "folder": null,
     "commands": {}
   },
@@ -135,6 +144,8 @@
     "showInLauncher": true,
     "gap": 0,
     "cycle": "displays",
+    "wrapDisplays": true,
+    "keepProportions": true,
     "layoutsShowInLauncher": true,
     "roomsShowInLauncher": true,
     "shortcuts": {
@@ -168,6 +179,10 @@
       "move-right": null,
       "move-up": null,
       "move-down": null,
+      "move-to-left-edge": null,
+      "move-to-right-edge": null,
+      "move-to-top-edge": null,
+      "move-to-bottom-edge": null,
       "next-display": "ctrl+option+cmd+right",
       "previous-display": "ctrl+option+cmd+left",
       "toggle-fullscreen": null,
