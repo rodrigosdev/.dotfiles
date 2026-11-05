@@ -9,6 +9,8 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 ├── .gitignore
 ├── dot                    # Setup CLI. Includes the GitHub SSH client block.
 ├── home/                  # Mirrors ~. Stow symlinks this onto $HOME
+│   ├── .agents/
+│   │   └── skills/        # Agent skills, one SKILL.md per directory
 │   ├── .config/
 │   │   ├── git/
 │   │   │   ├── config     # Git settings
@@ -52,6 +54,7 @@ Repo path: `~/Code/.dotfiles`.
 | Fish | `home/.config/fish/` |
 | Starship | `home/.config/starship.toml` |
 | Tinycast | `home/.config/tinycast/settings.json` |
+| Agent skills (Claude Code and others) | `home/.agents/skills/` |
 | Setup CLI and GitHub SSH client block | `dot` |
 | Refresh symlinks | `dot stow` |
 
@@ -96,6 +99,8 @@ brew bundle --file=packages/bundle
 ```
 
 ## NOTES
+
+- Skills live once, in `home/.agents/skills/<name>/SKILL.md`. Stow links them into `~/.agents/skills`. Claude Code reads `~/.claude/skills`, so `dot stow` makes that path one directory symlink to `../.agents/skills`. It sits outside this repo, so a new skill shows up in Claude Code after `dot stow` links its file, with no second copy or link. Do not add `home/.claude/skills`. Stow would follow it and link each file. `dot doctor` fails when `~/.claude/skills` is not that symlink.
 
 - Tinycast ignores `settings.json` until Settings, Backup, Settings File is enabled and the existing file is imported. See `home/.config/tinycast/README.md`.
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it next to the stowed files. Do not replace `~/.config/fish` with a symlink.

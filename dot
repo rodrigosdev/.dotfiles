@@ -361,7 +361,36 @@ __stow() {
   # Finder drops .DS_Store files into home/. Git ignores them; Stow needs to as well.
   # --no-folding links files, never whole directories, so files an app writes
   # beside its config (such as ~/.config/rex/ssh_config) stay out of this repo.
-  stow -R -v --no-folding --ignore='\.DS_Store' -d "$DOTFILES_DIR" -t "$HOME" home
+  stow -R -v --no-folding --ignore='\.DS_Store' -d "$DOTFILES_DIR" -t "$HOME" home || return 1
+  __link_claude_skills
+}
+
+# Skills live once, in home/.agents/skills. Claude Code reads ~/.claude/skills,
+# so that path is one directory link to ~/.agents/skills, a real directory
+# Stow fills. New skills show up in both places without another link.
+__link_claude_skills() {
+  local link="$HOME/.claude/skills" target="../.agents/skills"
+  if [[ -L "$link" && "$(readlink "$link")" == "$target" ]]; then
+    return 0
+  fi
+  if [[ -L "$link" ]]; then
+    rm "$link"
+  elif [[ -d "$link" ]]; then
+    # Drop links left by older layouts, then the directory if nothing else is in it.
+    find "$link" -type l ! -exec test -e {} \; -delete
+    find "$link" -name .DS_Store -delete
+    find "$link" -depth -type d -empty -delete
+    if [[ -e "$link" ]]; then
+      __bad "$link has files of its own. Move them into home/.agents/skills, then run: dot stow"
+      return 1
+    fi
+  elif [[ -e "$link" ]]; then
+    __bad "$link is a file. Remove it, then run: dot stow"
+    return 1
+  fi
+  mkdir -p "$HOME/.claude"
+  ln -s "$target" "$link"
+  __ok "Linked $link to ~/.agents/skills"
 }
 
 __install_grok() {
@@ -970,6 +999,12 @@ cmd_doctor() {
     [[ "$(basename "$tracked")" == .DS_Store ]] && continue
     __check_link "$HOME/${tracked#home/}" || failed=1
   done < <(git -C "$DOTFILES_DIR" ls-files home)
+  if [[ -L "$HOME/.claude/skills" && "$(readlink "$HOME/.claude/skills")" == "../.agents/skills" ]]; then
+    __ok "$HOME/.claude/skills"
+  else
+    __bad "$HOME/.claude/skills does not link to ~/.agents/skills. Run: dot stow"
+    failed=1
+  fi
   if [[ -L "$LINK_PATH" ]] && [[ "$(realpath "$LINK_PATH")" == "$DOTFILES_DIR/dot" ]]; then
     __ok "$LINK_PATH"
   else
