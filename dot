@@ -248,7 +248,8 @@ __stow() {
     return 1
   fi
   # The repo lives in ~/Code, so Stow's default target would be ~/Code.
-  stow -R -v -d "$DOTFILES_DIR" -t "$HOME" home
+  # Finder drops .DS_Store files into home/. Git ignores them; Stow needs to as well.
+  stow -R -v --ignore='\.DS_Store' -d "$DOTFILES_DIR" -t "$HOME" home
 }
 
 __install_grok() {
