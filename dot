@@ -199,6 +199,42 @@ __install_geist_mono() {
   [[ "$ready" -eq 1 ]]
 }
 
+# Rex has no command that lists themes, and each import adds another copy. A marker file
+# records the import so reruns skip it. Delete the marker to import again.
+# Rex for Mac is a beta app outside the Brewfile, so a missing app is a skip, not a failure.
+REX_THEME_MARKER="${XDG_STATE_HOME:-$HOME/.local/state}/dot/rex-oscura-midnight"
+
+__install_rex_theme() {
+  if [[ -f "$REX_THEME_MARKER" ]]; then
+    __ok "Rex theme Oscura Midnight was already imported"
+    return 0
+  fi
+  if ! __have rex; then
+    __warn "Rex is not installed. Install it, then run: dot rex"
+    return 0
+  fi
+  if ! rex client ls 2>/dev/null | grep -q ' app '; then
+    __warn "No Rex app is connected. Open Rex, then run: dot rex"
+    return 0
+  fi
+  if ! rex config reload >/dev/null 2>&1; then
+    __bad "Rex could not reload its config"
+    return 1
+  fi
+  local out
+  if out="$(rex do import_oscura_midnight 2>&1)"; then
+    mkdir -p "$(dirname "$REX_THEME_MARKER")"
+    : > "$REX_THEME_MARKER"
+    __ok "Imported the Oscura Midnight theme into Rex"
+  else
+    __bad "Rex theme import failed: $out"
+    case "$out" in
+      *"not accepting actions"*) __info "Turn on Remote Control in Rex Settings under Rex Server, then run: dot rex" ;;
+    esac
+    return 1
+  fi
+}
+
 # chsh rejects a shell that is not listed in /etc/shells. sudo chsh would change root.
 __setup_fish_shell() {
   local fish_path
@@ -503,6 +539,7 @@ ${BOLD}COMMANDS${RESET}
   doctor      Check tools, the Node.js default, links, Git signing, the GitHub signing key, SSH, and Geist Mono
   stow        Relink home/ onto ~
   grok        Install Grok with the official installer
+  rex         Import the Oscura Midnight theme into Rex, once
   ssh         Create the GitHub key, client config, signing files, and upload the signing key
   packages    Show whether each Brewfile package is installed
   link        Symlink dot into ~/.local/bin
@@ -524,6 +561,10 @@ cmd_stow() {
 cmd_grok() {
   __header "Grok"
   __install_grok
+}
+
+cmd_rex() {
+  __install_rex_theme
 }
 
 cmd_link() {
@@ -619,7 +660,7 @@ cmd_packages() {
 }
 
 cmd_init() {
-  local skip_ssh=0 total=7 step=0 failed=0
+  local skip_ssh=0 total=8 step=0 failed=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -h|--help) cmd_help; return 0 ;;
@@ -629,7 +670,7 @@ cmd_init() {
     shift
   done
   if [[ "$skip_ssh" -eq 0 ]]; then
-    total=8
+    total=9
   fi
   __header "Setup"
 
@@ -688,6 +729,14 @@ cmd_init() {
   step=$((step + 1))
   __step "$step" "$total" "Geist Mono"
   if __install_geist_mono; then
+    true
+  else
+    failed=1
+  fi
+
+  step=$((step + 1))
+  __step "$step" "$total" "Rex theme"
+  if __install_rex_theme; then
     true
   else
     failed=1
@@ -967,6 +1016,7 @@ main() {
     doctor) cmd_doctor "$@" ;;
     stow) cmd_stow "$@" ;;
     grok) cmd_grok "$@" ;;
+    rex) cmd_rex "$@" ;;
     ssh) cmd_ssh "$@" ;;
     packages) cmd_packages "$@" ;;
     link) cmd_link "$@" ;;
