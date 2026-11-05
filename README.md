@@ -62,7 +62,7 @@ Keep the private key outside this repo. `dot doctor` fails when `~/.ssh/id_ed255
 dot doctor
 ```
 
-`dot doctor` checks the tools, the links, Git signing, the GitHub signing key, SSH, and Geist Mono.
+`dot doctor` checks the tools, the links, Rex, Git signing, the GitHub signing key, SSH, and Geist Mono.
 
 ## Update packages
 
@@ -81,7 +81,15 @@ Geist Mono comes from the latest release at https://github.com/vercel/geist-font
 - `GeistMono-Italic.otf`
 - `GeistMono-BoldItalic.otf`
 
-Rex uses those faces. Pick Geist Mono in Rex Settings; Rex has no config setting for the font.
+Rex uses those faces. The font is a Rex app setting, not an `init.lua` setting. `home/.config/rex/macos-defaults.conf` sets it, and `dot rex` writes it. Relaunch Rex after that file changes.
+
+## Set up Rex
+
+```bash
+dot rex
+```
+
+`dot rex` writes the app settings in `home/.config/rex/macos-defaults.conf`, checks and reloads `init.lua`, imports the Oscura Midnight theme when Rex does not have it, and runs `rex terminfo setup`. `dot init` and `dot update` run the same steps. The theme import needs Rex open with Remote Control on.
 
 ## Edit a config
 
@@ -93,7 +101,7 @@ After you add or move a file under `home/`, relink it.
 dot stow
 ```
 
-`dot stow` runs `stow -R` and does not pass `--adopt`. If a path in `~` is already a real file or directory, move it aside before you run `dot stow`.
+`dot stow` runs `stow -R --no-folding` and does not pass `--adopt`. Each file is its own symlink, so files an app writes into `~/.config/<tool>` stay out of this repo. If a path in `~` is already a real file or directory, move it aside before you run `dot stow`.
 
 The app list is `packages/bundle`. That list includes pnpm and fnm. fnm installs Node. `dot init` and `dot update` install the latest Node.js LTS when it is missing, and fnm makes it the default when no default is set. `dot packages` prints whether each package is installed. The command exits with status 1 when any package is missing.
 

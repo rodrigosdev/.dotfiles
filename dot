@@ -199,33 +199,79 @@ __install_geist_mono() {
   [[ "$ready" -eq 1 ]]
 }
 
-# Rex has no command that lists themes, and each import adds another copy. A marker file
-# records the import so reruns skip it. Delete the marker to import again.
 # Rex for Mac is a beta app outside the Brewfile, so a missing app is a skip, not a failure.
-REX_THEME_MARKER="${XDG_STATE_HOME:-$HOME/.local/state}/dot/rex-oscura-midnight"
+REX_DEFAULTS_DOMAIN="com.superlogical.rex"
+REX_SETTINGS_FILE="$DOTFILES_DIR/home/.config/rex/macos-defaults.conf"
+REX_THEME_NAME="oscura-midnight"
+REX_THEME_FILE="$HOME/.config/rex/themes/$REX_THEME_NAME"
 
-__install_rex_theme() {
-  if [[ -f "$REX_THEME_MARKER" ]]; then
-    __ok "Rex theme Oscura Midnight was already imported"
-    return 0
+# Writes each macos-defaults.conf line whose value differs from the app's.
+__apply_rex_settings() {
+  local key type value current expected changed=0
+  while read -r key type value; do
+    [[ -z "$key" || "$key" == \#* ]] && continue
+    current="$(defaults read "$REX_DEFAULTS_DOMAIN" "$key" 2>/dev/null || true)"
+    expected="$value"
+    if [[ "$type" == bool ]]; then
+      if [[ "$value" == true ]]; then expected=1; else expected=0; fi
+    fi
+    [[ "$current" == "$expected" ]] && continue
+    if ! defaults write "$REX_DEFAULTS_DOMAIN" "$key" "-$type" "$value"; then
+      __bad "Could not write the Rex setting $key"
+      return 1
+    fi
+    changed=$((changed + 1))
+  done < "$REX_SETTINGS_FILE"
+  if [[ "$changed" -eq 0 ]]; then
+    __ok "Rex app settings match macos-defaults.conf"
+  else
+    __ok "Wrote $changed Rex app setting(s). Relaunch Rex to apply them"
   fi
-  if ! __have rex; then
-    __warn "Rex is not installed. Install it, then run: dot rex"
-    return 0
-  fi
-  if ! rex client ls 2>/dev/null | grep -q ' app '; then
-    __warn "No Rex app is connected. Open Rex, then run: dot rex"
-    return 0
-  fi
-  if ! rex config reload >/dev/null 2>&1; then
-    __bad "Rex could not reload its config"
+}
+
+# Checks init.lua, then reloads it when a server is running.
+__reload_rex_config() {
+  if ! rex config check >/dev/null 2>&1; then
+    __bad "Rex config has errors. Run: rex config check"
     return 1
   fi
-  local out
-  if out="$(rex do import_oscura_midnight 2>&1)"; then
-    mkdir -p "$(dirname "$REX_THEME_MARKER")"
-    : > "$REX_THEME_MARKER"
-    __ok "Imported the Oscura Midnight theme into Rex"
+  if rex --autostart=false config reload >/dev/null 2>&1; then
+    __ok "Rex config is valid and reloaded"
+  else
+    __ok "Rex config is valid"
+  fi
+}
+
+# True when the app's custom themes include REX_THEME_NAME. Rex has no command
+# that lists themes, and each import adds another copy, so dot reads its defaults.
+__rex_theme_imported() {
+  defaults export "$REX_DEFAULTS_DOMAIN" - 2>/dev/null \
+    | plutil -convert xml1 -o - - 2>/dev/null \
+    | awk '/<key>Workspace.customThemes<\/key>/ { f = 1; next } f && /<\/data>/ { exit } f && !/<data>/ { print }' \
+    | base64 -D 2>/dev/null \
+    | grep -q "\"name\":\"$REX_THEME_NAME\""
+}
+
+# Prints the ID of the one connected Rex app. Fails when there is none or more than one.
+__rex_app_client() {
+  local ids
+  ids="$(rex client ls --json 2>/dev/null | jq -r '.clients[] | select(.info.kind == "app") | .client_id' 2>/dev/null || true)"
+  [[ -n "$ids" && "$(printf '%s\n' "$ids" | wc -l | tr -d ' ')" -eq 1 ]] || return 1
+  printf '%s\n' "$ids"
+}
+
+__import_rex_theme() {
+  local client out
+  if __rex_theme_imported; then
+    __ok "Rex theme $REX_THEME_NAME is imported"
+    return 0
+  fi
+  if ! client="$(__rex_app_client)"; then
+    __warn "Open Rex on this Mac, then run: dot rex"
+    return 0
+  fi
+  if out="$(rex -C "$client" do client.theme.import path="$REX_THEME_FILE" 2>&1)"; then
+    __ok "Imported Rex theme $REX_THEME_NAME"
   else
     __bad "Rex theme import failed: $out"
     case "$out" in
@@ -233,6 +279,34 @@ __install_rex_theme() {
     esac
     return 1
   fi
+}
+
+# Installs xterm-rex into ~/.terminfo, writes ~/.config/rex/ssh_config, and adds one
+# Include line at the top of ~/.ssh/config so remote hosts get xterm-256color.
+# Rex writes these because they hold machine paths. Stow must not fold ~/.config/rex,
+# or ssh_config would land in this repo.
+__setup_rex_terminfo() {
+  if rex terminfo status 2>/dev/null | grep -q '^Ready:'; then
+    __ok "Rex terminfo is set up"
+  elif rex terminfo setup >/dev/null; then
+    __ok "Installed Rex terminfo (xterm-rex) and its ssh guard"
+  else
+    __bad "rex terminfo setup failed"
+    return 1
+  fi
+}
+
+__setup_rex() {
+  local failed=0
+  if ! __have rex; then
+    __warn "Rex is not installed. Install it, then run: dot rex"
+    return 0
+  fi
+  __apply_rex_settings || failed=1
+  __reload_rex_config || failed=1
+  __import_rex_theme || failed=1
+  __setup_rex_terminfo || failed=1
+  [[ "$failed" -eq 0 ]]
 }
 
 # chsh rejects a shell that is not listed in /etc/shells. sudo chsh would change root.
@@ -244,7 +318,7 @@ __setup_fish_shell() {
   fi
   fish_path="$(command -v fish)"
 
-  if ! grep -qF "$fish_path" /etc/shells; then
+  if ! grep -qxF "$fish_path" /etc/shells; then
     __info "Adding Fish to /etc/shells"
     if [[ -s /etc/shells ]] && [[ -n "$(tail -c 1 /etc/shells 2>/dev/null || true)" ]]; then
       printf '\n%s\n' "$fish_path" | sudo tee -a /etc/shells >/dev/null || return 1
@@ -285,7 +359,9 @@ __stow() {
   fi
   # The repo lives in ~/Code, so Stow's default target would be ~/Code.
   # Finder drops .DS_Store files into home/. Git ignores them; Stow needs to as well.
-  stow -R -v --ignore='\.DS_Store' -d "$DOTFILES_DIR" -t "$HOME" home
+  # --no-folding links files, never whole directories, so files an app writes
+  # beside its config (such as ~/.config/rex/ssh_config) stay out of this repo.
+  stow -R -v --no-folding --ignore='\.DS_Store' -d "$DOTFILES_DIR" -t "$HOME" home
 }
 
 __install_grok() {
@@ -535,11 +611,11 @@ ${BOLD}USAGE${RESET}
 
 ${BOLD}COMMANDS${RESET}
   init        Install Homebrew when it is missing, then packages, the Node.js LTS, links, Fish, Grok, Geist Mono, and SSH
-  update      Install missing packages, the Node.js LTS, upgrade formulae, relink configs, and install Geist Mono
-  doctor      Check tools, the Node.js default, links, Git signing, the GitHub signing key, SSH, and Geist Mono
+  update      Install missing packages, the Node.js LTS, upgrade formulae, relink configs, install Geist Mono, set up Rex
+  doctor      Check tools, the Node.js default, links, Rex, Git signing, the GitHub signing key, SSH, and Geist Mono
   stow        Relink home/ onto ~
   grok        Install Grok with the official installer
-  rex         Import the Oscura Midnight theme into Rex, once
+  rex         Write Rex app settings, check its config, import Oscura Midnight, set up terminfo
   ssh         Create the GitHub key, client config, signing files, and upload the signing key
   packages    Show whether each Brewfile package is installed
   link        Symlink dot into ~/.local/bin
@@ -564,7 +640,8 @@ cmd_grok() {
 }
 
 cmd_rex() {
-  __install_rex_theme
+  __header "Rex"
+  __setup_rex
 }
 
 cmd_link() {
@@ -735,8 +812,8 @@ cmd_init() {
   fi
 
   step=$((step + 1))
-  __step "$step" "$total" "Rex theme"
-  if __install_rex_theme; then
+  __step "$step" "$total" "Rex"
+  if __setup_rex; then
     true
   else
     failed=1
@@ -758,29 +835,29 @@ cmd_init() {
   __header "Setup finished"
 }
 
+# Like init, a failed step does not stop the later ones. The exit status is 1 at the end.
 cmd_update() {
-  local kind name outdated upgraded=0
+  local kind name outdated upgraded=0 failed=0
   __header "Updating packages"
   if ! __have brew; then
     __bad "Homebrew is not installed. Run: dot init"
     return 1
   fi
-  brew update
-  if ! brew bundle --file="$PACKAGES_FILE"; then
+  brew update || failed=1
+  if brew bundle --file="$PACKAGES_FILE"; then
+    __ok "Brewfile packages are installed"
+  else
     __bad "Some packages failed to install"
-    return 1
+    failed=1
   fi
-  __ok "Brewfile packages are installed"
   __header "Node.js"
-  if ! __ensure_node; then
-    return 1
-  fi
+  __ensure_node || failed=1
   outdated="$(brew outdated --formula --quiet || true)"
   while IFS=$'\t' read -r kind name; do
     [[ "$kind" == formula ]] || continue
     if printf '%s\n' "$outdated" | grep -qxF "$name"; then
       __info "Upgrading $name"
-      brew upgrade "$name"
+      brew upgrade "$name" || failed=1
       upgraded=1
     fi
   done < <(__brewfile_entries)
@@ -800,18 +877,29 @@ cmd_update() {
     __ok "Casks from the Brewfile are current"
   fi
   __header "Linking configs"
-  __stow
-  __ok "Linked home/ onto $HOME"
-  __header "Geist Mono"
-  if ! __install_geist_mono; then
-    return 1
+  if __stow; then
+    __ok "Linked home/ onto $HOME"
+  else
+    __bad "Could not link configs"
+    failed=1
   fi
+  __header "Geist Mono"
+  __install_geist_mono || failed=1
+  __header "Rex"
+  __setup_rex || failed=1
+  [[ "$failed" -eq 0 ]]
 }
 
+# Each tracked file must be its own symlink. A file under a folded directory
+# symlink resolves into the repo too, but it means Stow folded that directory.
 __check_link() {
   local path="$1" resolved
   if [[ ! -e "$path" ]]; then
     __bad "Missing $path"
+    return 1
+  fi
+  if [[ ! -L "$path" ]]; then
+    __bad "$path is not a symlink. Its directory may be folded. Run: dot stow"
     return 1
   fi
   resolved="$(realpath "$path")"
@@ -877,27 +965,37 @@ cmd_doctor() {
   fi
 
   __header "Links"
-  local link
-  for link in \
-    "$HOME/.config/git/config" \
-    "$HOME/.config/git/ignore" \
-    "$HOME/.config/lazygit/config.yml" \
-    "$HOME/.config/rex/init.lua" \
-    "$HOME/.config/rex/themes/oscura-midnight" \
-    "$HOME/.config/starship.toml" \
-    "$HOME/.config/fish/config.fish" \
-    "$HOME/.config/fish/conf.d/fnm.fish" \
-    "$HOME/.config/fish/conf.d/lazygit.fish" \
-    "$HOME/.config/fish/conf.d/theme.fish" \
-    "$HOME/.config/fish/completions/dot.fish" \
-    "$HOME/.config/tinycast/settings.json"
-  do
-    __check_link "$link" || failed=1
-  done
+  local tracked
+  while IFS= read -r tracked; do
+    [[ "$(basename "$tracked")" == .DS_Store ]] && continue
+    __check_link "$HOME/${tracked#home/}" || failed=1
+  done < <(git -C "$DOTFILES_DIR" ls-files home)
   if [[ -L "$LINK_PATH" ]] && [[ "$(realpath "$LINK_PATH")" == "$DOTFILES_DIR/dot" ]]; then
     __ok "$LINK_PATH"
   else
     __warn "dot is not on PATH yet. Run: dot link"
+  fi
+
+  __header "Rex"
+  if ! __have rex; then
+    __warn "Rex is not installed"
+  else
+    if rex config check >/dev/null 2>&1; then
+      __ok "Rex config loads without errors"
+    else
+      __bad "Rex config has errors. Run: rex config check"
+      failed=1
+    fi
+    if __rex_theme_imported; then
+      __ok "Rex theme $REX_THEME_NAME is imported"
+    else
+      __warn "Rex theme $REX_THEME_NAME is not imported. Run: dot rex"
+    fi
+    if rex terminfo status 2>/dev/null | grep -q '^Ready:'; then
+      __ok "Rex terminfo is set up"
+    else
+      __warn "Rex terminfo is not set up. Run: dot rex"
+    fi
   fi
 
   __header "Git"

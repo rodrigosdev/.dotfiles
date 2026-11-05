@@ -16,7 +16,8 @@ macOS config via GNU Stow. Apps come from the Brewfile. Configs are added one to
 │   │   ├── lazygit/
 │   │   │   └── config.yml
 │   │   ├── rex/
-│   │   │   ├── init.lua
+│   │   │   ├── init.lua             # Keys and actions
+│   │   │   ├── macos-defaults.conf  # App settings `dot rex` writes with `defaults write`
 │   │   │   └── themes/
 │   │   │       └── oscura-midnight
 │   │   ├── tinycast/
@@ -46,7 +47,8 @@ Repo path: `~/Code/.dotfiles`.
 | Git settings | `home/.config/git/config` |
 | Global gitignore | `home/.config/git/ignore` |
 | Lazygit | `home/.config/lazygit/config.yml` |
-| Rex | `home/.config/rex/` |
+| Rex keys and actions | `home/.config/rex/init.lua` |
+| Rex font, tabs, sidebar | `home/.config/rex/macos-defaults.conf` |
 | Fish | `home/.config/fish/` |
 | Starship | `home/.config/starship.toml` |
 | Tinycast | `home/.config/tinycast/settings.json` |
@@ -71,6 +73,8 @@ Repo path: `~/Code/.dotfiles`.
 - Growing `dot` into a package manager, a second Brewfile, or configs for tools this machine does not use. Homebrew is the one install the Brewfile cannot do. Only `dot init` installs it.
 - Stowing `~/.ssh`. A folded symlink would let `dot ssh` write the private key into this repo. `dot ssh` writes `~/.ssh/config` as a real file.
 - Adding `.stowrc`. The repo is `~/Code/.dotfiles`, so Stow's default target is `~/Code`. `dot stow` passes `-t "$HOME"`.
+- Dropping `--no-folding` from `dot stow`. A folded directory symlink sends every file an app writes beside its config into this repo, such as `~/.config/rex/ssh_config` from `rex terminfo setup`. `dot doctor` fails when a tracked file is not its own symlink.
+- Defining a Rex theme-import action in `init.lua`. It would show in the command palette, and each run adds another copy of the theme.
 
 ## COMMANDS
 
@@ -78,14 +82,14 @@ Repo path: `~/Code/.dotfiles`.
 # from ~/Code/.dotfiles
 ./dot init                # Homebrew when missing, then packages, Node.js LTS, links, Fish login shell, Grok, Geist Mono, SSH
 ./dot init --skip-ssh     # same setup, without the SSH key
-./dot update              # install missing packages, Node.js LTS, upgrade formulae, relink, Geist Mono
+./dot update              # install missing packages, Node.js LTS, upgrade formulae, relink, Geist Mono, Rex
 ./dot ssh                 # GitHub key, client config, signing files
 ./dot doctor              # check this machine
 ./dot packages            # show whether each Brewfile package is installed
 ./dot link                # symlink dot into ~/.local/bin
 ./dot unlink              # remove that symlink
 ./dot grok                # install Grok from https://x.ai/cli/install.sh
-./dot rex                 # import the Oscura Midnight theme into Rex, once
+./dot rex                 # Rex app settings, config check and reload, theme when missing, terminfo
 ./dot stow                # link home/ onto ~
 ./dot help                # show help
 brew bundle --file=packages/bundle
@@ -97,11 +101,15 @@ brew bundle --file=packages/bundle
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it next to the stowed files. Do not replace `~/.config/fish` with a symlink.
 - `dot init` installs `jhillyerd/plugin-git` with `fisher install`. The plugin files stay on the machine. After editing `fish_plugins`, run `fisher update` from Fish.
 - Lazygit reads `home/.config/lazygit/config.yml` because Fish sets `LG_CONFIG_FILE` in `home/.config/fish/conf.d/lazygit.fish`. On macOS, with that variable unset, lazygit searches `~/Library/Application Support/lazygit/config.yml` first and creates it when no config exists. After that file exists, a stowed `~/.config/lazygit/config.yml` is ignored. Do not set `CONFIG_DIR`. State would be written next to the config, inside this repo. State stays in `~/Library/Application Support/lazygit/`. Do not set `nerdFontsVersion`. Geist Mono is not a Nerd Font.
-- Rex reads `~/.config/rex/init.lua`. It does not watch that file. After an edit, run `rex config check`, then `rex config reload`. `home/.config/rex/themes/oscura-midnight` is Oscura Midnight in Ghostty's theme format, which Rex imports. `rex do import_oscura_midnight` imports it and selects it. That adds a custom theme each time, so `dot init` and `dot rex` run it once and record that in `~/.local/state/dot/rex-oscura-midnight`. Rex has no command that lists themes. Delete that marker to import again. Both skip with a warning when `rex` or the Rex app is missing. Rex for Mac is a beta app and is not in the Brewfile.
+- Rex reads `~/.config/rex/init.lua`. It does not watch that file. After an edit, run `rex config check`, then `rex config reload`. `init.lua` holds keys, actions, and hosts only.
+- Rex app settings (font, tabs, sidebar, Remote Control) are macOS defaults in the `com.superlogical.rex` domain. `home/.config/rex/macos-defaults.conf` tracks them as `KEY TYPE VALUE` lines. `dot init`, `dot update`, and `dot rex` write each line whose value differs. Relaunch Rex after a change. A value changed only in Rex Settings is reverted by the next `dot update`, so copy it into that file. Read the app's value with `defaults read com.superlogical.rex KEY`. Key names come from `strings "/Applications/Rex Beta.app/Contents/MacOS/Rex" | grep '^Workspace\.'`.
+- `home/.config/rex/themes/oscura-midnight` is Oscura Midnight in Ghostty's theme format. `dot rex` imports it with the app action `client.theme.import`, which also selects it. Each import adds another copy and Rex has no command that lists themes, so `dot` decodes `Workspace.customThemes` from the app's defaults and imports only when no theme is named `oscura-midnight`. To import again, delete that theme in Rex Settings. The import needs the Rex app open with Remote Control on.
+- `dot rex` runs `rex terminfo setup` when `rex terminfo status` is not ready. Rex writes `~/.terminfo`, `~/.config/rex/ssh_config`, and one `Include` line at the top of `~/.ssh/config`. Those files are machine state, not tracked. `dot ssh` keeps that `Include` line.
+- Every Rex step skips with a warning when `rex` is missing. Rex for Mac is a beta app and is not in the Brewfile. `dot` reads `rex client ls --json` with `/usr/bin/jq`, which ships with macOS.
 - The login shell is Fish (`/opt/homebrew/bin/fish`). `dot init` compares `$SHELL` with `command -v fish`. When they differ, it appends that path to `/etc/shells` if it is missing, runs `chsh -s`, and tells you to log out and back in. `dot doctor` warns when `$SHELL` is not that path. Fish layout and commands are in `home/.config/fish/AGENTS.md`.
 - `dot init` installs Homebrew when `brew` is not on PATH. It runs https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh with `/bin/bash`, then `brew shellenv` in that same process. It does not append `shellenv` to Fish config or `~/.zprofile`. Fish PATH stays in `home/.config/fish/conf.d/brew.fish`. `dot update`, `dot packages`, and `dot doctor` do not install Homebrew. When `brew` is missing they say to run `dot init`.
 - `dot` prints with the Oscura Midnight palette. `dot link` puts it on `PATH` through `~/.local/bin`.
-- `dot stow` runs `stow -R -v --ignore='\.DS_Store' -d ~/Code/.dotfiles -t "$HOME" home`. Finder writes `.DS_Store` into `home/`. Git ignores it, but Stow does not read `.gitignore`. Without `--ignore`, Stow aborts on `~/.config/.DS_Store`.
+- `dot stow` runs `stow -R -v --no-folding --ignore='\.DS_Store' -d ~/Code/.dotfiles -t "$HOME" home`. Directories under `~` are real, and only files are symlinks. Finder writes `.DS_Store` into `home/`. Git ignores it, but Stow does not read `.gitignore`. Without `--ignore`, Stow aborts on `~/.config/.DS_Store`.
 - `dot grok` installs Grok Build with `https://x.ai/cli/install.sh`. The installer adds `~/.grok/bin` to Fish `PATH` in `config.fish` and refreshes `completions/grok.fish`. Leave that completion next to the stowed files.
 - `dot ssh` creates `~/.ssh/id_ed25519` with no passphrase, pins GitHub's host keys, writes `~/.ssh/allowed_signers`, and uploads that public key as a GitHub signing key. The private key stays on the machine. Uploading needs `gh` logged in with the `admin:ssh_signing_key` scope.
 - Git signs commits and tags with that public key. `dot doctor` fails when GitHub does not have it as a signing key, because that is what makes commits show as verified. The same key is also the authentication key for SSH pushes. Add it on GitHub as an authentication key, then run `gh auth login`, before pushes and the GitHub CLI work.
