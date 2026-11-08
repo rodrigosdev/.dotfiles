@@ -1,6 +1,6 @@
 # Set up this Mac
 
-This repo configures an Apple Silicon Mac. The `dot` script installs the packages in `packages/bundle`, links `home/` onto `~` with GNU Stow, and sets up Fish, Grok, Geist Mono, Rex, and a GitHub SSH key. Clone it to `~/Code/.dotfiles`, because `dot` finds its files from the directory that holds the script.
+This repo configures an Apple Silicon Mac. The `dot` script installs the packages in `packages/bundle`, links `home/` onto `~` with GNU Stow, and sets up Fish, Grok, Ioskeley Mono, Rex, and a GitHub SSH key. Clone it to `~/Code/.dotfiles`, because `dot` finds its files from the directory that holds the script.
 
 ## Before you start
 
@@ -20,7 +20,7 @@ This repo configures an Apple Silicon Mac. The `dot` script installs the package
 2. Installs the packages in `packages/bundle` and the latest Node.js LTS.
 3. Links `home/` onto `~`.
 4. Makes Fish the login shell. When the Fish path is missing from `/etc/shells`, it appends the path with `sudo`. When `$SHELL` is not Fish, it runs `chsh -s`. Log out and back in afterward.
-5. Installs Grok, Geist Mono, and the Rex settings.
+5. Installs Grok, Ioskeley Mono, and the Rex settings.
 6. Creates `~/.ssh/id_ed25519` with no passphrase when the key is missing, then writes the GitHub SSH client block and uploads the signing key.
 
 `dot link` points `~/.local/bin/dot` at the script and refuses to replace a regular file at that path. Open a new Fish shell afterward. `home/.config/fish/conf.d/brew.fish` adds `/opt/homebrew/bin` and `~/.local/bin` to `PATH`. `dot init` does not write `~/.zprofile` or `config.fish`.
@@ -47,7 +47,7 @@ dot ssh
 dot doctor
 ```
 
-It checks the tools, the links, Rex, Git signing, the GitHub signing key, SSH, and Geist Mono.
+It checks the tools, the links, Rex, Git signing, the GitHub signing key, SSH, and Ioskeley Mono.
 
 ## Update
 
@@ -55,20 +55,22 @@ It checks the tools, the links, Rex, Git signing, the GitHub signing key, SSH, a
 dot update
 ```
 
-`dot update` runs `brew update`, installs missing packages and the latest Node.js LTS, upgrades outdated formulae, relinks `home/`, installs Geist Mono when a face is missing, and applies the Rex steps. For an outdated cask it prints the `brew upgrade --cask` command and does not run it.
+`dot update` runs `brew update`, installs missing packages and the latest Node.js LTS, upgrades outdated formulae, relinks `home/`, installs Ioskeley Mono when a face is missing, and applies the Rex steps. For an outdated cask it prints the `brew upgrade --cask` command and does not run it.
 
 `dot packages` prints whether each package in `packages/bundle` is installed. It exits with status 1 when one is missing.
 
-## Geist Mono
+## Ioskeley Mono
 
-Geist Mono comes from the latest release at https://github.com/vercel/geist-font. The installer copies all of `GeistMono/otf` into `~/Library/Fonts` when any of these files is missing. `dot doctor` checks only these four.
+Ioskeley Mono Term comes from the latest release at https://github.com/ahatem/IoskeleyMono. Rex is a terminal, so the installer uses the Term family. It copies the Normal, unhinted faces into `~/Library/Fonts` when any of these files is missing. Unhinted is the build for macOS. `dot doctor` checks only these four.
 
-- `GeistMono-Regular.otf`
-- `GeistMono-Bold.otf`
-- `GeistMono-Italic.otf`
-- `GeistMono-BoldItalic.otf`
+- `IoskeleyMonoTerm-Regular.ttf`
+- `IoskeleyMonoTerm-Bold.ttf`
+- `IoskeleyMonoTerm-Italic.ttf`
+- `IoskeleyMonoTerm-BoldItalic.ttf`
 
-Rex uses these faces. The font is a Rex app setting, so it lives in `home/.config/rex/macos-defaults.conf` and not in `init.lua`.
+The copy also includes the other Normal unhinted weights. Hinted and SemiCondensed files stay out.
+
+Rex uses this family. The font is a Rex app setting, so it lives in `home/.config/rex/macos-defaults.conf` and not in `init.lua`.
 
 ## Rex
 

@@ -96,23 +96,18 @@ __font_present() {
   [[ -f "$HOME/Library/Fonts/$name" || -f "/Library/Fonts/$name" ]]
 }
 
-# Rex uses these four faces. The release also includes the other static weights.
-__geist_faces() {
+# Rex uses these four faces. The release also includes the other Normal weights.
+__ioskeley_faces() {
   printf '%s\n' \
-    GeistMono-Regular.otf \
-    GeistMono-Bold.otf \
-    GeistMono-Italic.otf \
-    GeistMono-BoldItalic.otf
+    IoskeleyMonoTerm-Regular.ttf \
+    IoskeleyMonoTerm-Bold.ttf \
+    IoskeleyMonoTerm-Italic.ttf \
+    IoskeleyMonoTerm-BoldItalic.ttf
 }
 
-__geist_release_zip_url() {
-  local page tag
-  page="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/vercel/geist-font/releases/latest)"
-  tag="${page##*/}"
-  if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    return 1
-  fi
-  printf 'https://github.com/vercel/geist-font/releases/download/%s/geist-font-%s.zip\n' "$tag" "$tag"
+# The asset name stays the same across releases, so /releases/latest is enough.
+__ioskeley_release_zip_url() {
+  printf '%s\n' 'https://github.com/ahatem/IoskeleyMono/releases/latest/download/IoskeleyMono-Term.zip'
 }
 
 # Installs the latest Node.js LTS with fnm. fnm sets it as the default only
@@ -148,41 +143,39 @@ __ensure_node() {
   __ok "Node.js default is $version"
 }
 
-# Copies static Geist Mono OTFs into ~/Library/Fonts. Skips the download when
-# the four faces are already installed. Leaves ttf, variable, and webfont files out.
-__install_geist_mono() {
+# Copies Normal, unhinted Ioskeley Mono Term faces into ~/Library/Fonts.
+# Skips the download when the four faces are already installed. Leaves hinted
+# and SemiCondensed files out. Unhinted is the build for macOS.
+__install_ioskeley_mono() {
   local face ready=1 dest url tmp
   while IFS= read -r face; do
     if ! __font_present "$face"; then
       ready=0
     fi
-  done < <(__geist_faces)
+  done < <(__ioskeley_faces)
   if [[ "$ready" -eq 1 ]]; then
     while IFS= read -r face; do
       __ok "$face"
-    done < <(__geist_faces)
+    done < <(__ioskeley_faces)
     return 0
   fi
   if ! __have curl || ! __have unzip; then
-    __bad "curl and unzip are required to install Geist Mono"
+    __bad "curl and unzip are required to install Ioskeley Mono"
     return 1
   fi
   dest="$HOME/Library/Fonts"
   mkdir -p "$dest"
-  if ! url="$(__geist_release_zip_url)"; then
-    __bad "Could not find the Geist Mono release"
-    return 1
-  fi
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/geist-mono.XXXXXX")"
-  __info "Downloading Geist Mono from $url"
-  if ! curl -fsSL -o "$tmp/geist.zip" "$url"; then
-    __bad "Could not download Geist Mono"
+  url="$(__ioskeley_release_zip_url)"
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/ioskeley-mono.XXXXXX")"
+  __info "Downloading Ioskeley Mono from $url"
+  if ! curl -fsSL -o "$tmp/ioskeley.zip" "$url"; then
+    __bad "Could not download Ioskeley Mono"
     rm -rf "$tmp"
     return 1
   fi
-  # Only the static otf directory. Variable fonts live under variable/ and webfonts/.
-  if ! unzip -q -o -j "$tmp/geist.zip" 'geist-font/GeistMono/otf/*.otf' -d "$dest"; then
-    __bad "Could not install Geist Mono"
+  # Term family, Normal width, unhinted. Hinted is for standard-DPI displays.
+  if ! unzip -q -o -j "$tmp/ioskeley.zip" 'Normal/Unhinted/*.ttf' -d "$dest"; then
+    __bad "Could not install Ioskeley Mono"
     rm -rf "$tmp"
     return 1
   fi
@@ -195,7 +188,7 @@ __install_geist_mono() {
       __bad "$face is not installed"
       ready=0
     fi
-  done < <(__geist_faces)
+  done < <(__ioskeley_faces)
   [[ "$ready" -eq 1 ]]
 }
 
@@ -662,9 +655,9 @@ ${BOLD}USAGE${RESET}
   dot <command>
 
 ${BOLD}COMMANDS${RESET}
-  init        Install Homebrew when it is missing, then packages, the Node.js LTS, links, Fish, Grok, Geist Mono, and SSH
-  update      Install missing packages, the Node.js LTS, upgrade formulae, relink configs, install Geist Mono, set up Rex
-  doctor      Check tools, the Node.js default, links, Rex, Git signing, the GitHub signing key, SSH, and Geist Mono
+  init        Install Homebrew when it is missing, then packages, the Node.js LTS, links, Fish, Grok, Ioskeley Mono, and SSH
+  update      Install missing packages, the Node.js LTS, upgrade formulae, relink configs, install Ioskeley Mono, set up Rex
+  doctor      Check tools, the Node.js default, links, Rex, Git signing, the GitHub signing key, SSH, and Ioskeley Mono
   stow        Relink home/ onto ~
   grok        Install Grok with the official installer
   rex         Write Rex app settings, check its config, import Oscura Midnight, set up terminfo
@@ -856,8 +849,8 @@ cmd_init() {
   fi
 
   step=$((step + 1))
-  __step "$step" "$total" "Geist Mono"
-  if __install_geist_mono; then
+  __step "$step" "$total" "Ioskeley Mono"
+  if __install_ioskeley_mono; then
     true
   else
     failed=1
@@ -935,8 +928,8 @@ cmd_update() {
     __bad "Could not link configs"
     failed=1
   fi
-  __header "Geist Mono"
-  __install_geist_mono || failed=1
+  __header "Ioskeley Mono"
+  __install_ioskeley_mono || failed=1
   __header "Rex"
   __setup_rex || failed=1
   [[ "$failed" -eq 0 ]]
@@ -1011,7 +1004,7 @@ cmd_doctor() {
       font_missing=1
       failed=1
     fi
-  done < <(__geist_faces)
+  done < <(__ioskeley_faces)
   if [[ "$font_missing" -eq 1 ]]; then
     __info "Run: dot update"
   fi

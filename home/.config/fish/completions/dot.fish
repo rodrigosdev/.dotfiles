@@ -1,7 +1,7 @@
 complete -c dot -f
 complete -c dot -n __fish_use_subcommand -a init -d 'Install Homebrew when missing, then packages, links, Fish, and SSH'
 complete -c dot -n __fish_use_subcommand -a update -d 'Install missing packages, upgrade formulae, relink configs, set up Rex'
-complete -c dot -n __fish_use_subcommand -a doctor -d 'Check tools, links, Rex, Git signing, the GitHub signing key, SSH, and Geist Mono'
+complete -c dot -n __fish_use_subcommand -a doctor -d 'Check tools, links, Rex, Git signing, the GitHub signing key, SSH, and Ioskeley Mono'
 complete -c dot -n __fish_use_subcommand -a stow -d 'Relink home/ onto ~'
 complete -c dot -n __fish_use_subcommand -a grok -d 'Install Grok with the official installer'
 complete -c dot -n __fish_use_subcommand -a rex -d 'Write Rex app settings, check its config, import the theme, set up terminfo'
