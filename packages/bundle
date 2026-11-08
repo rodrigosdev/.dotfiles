@@ -2,7 +2,6 @@
 # Note: require_sha disabled to prevent installation failures
 cask_args appdir: "/Applications"
 
-tap "abue-ammar/tinycast"
 tap "anomalyco/tap"
 
 brew "btop"
@@ -30,5 +29,5 @@ cask "anomalyco/tap/hex"
 cask "orbstack"
 cask "spotify"
 cask "t3-code"
-cask "abue-ammar/tinycast/tinycast"
+cask "tinycast"
 cask "yaak"

@@ -1,6 +1,6 @@
 # Tinycast
 
-Installed from the `abue-ammar/tinycast` cask in `packages/bundle`.
+Installed from the `tinycast` cask in `packages/bundle`.
 
 `settings.json` holds the launcher shortcut, window-management shortcuts, clipboard, and emoji search. Tinycast keeps its own preferences as the source of truth until Settings File is turned on.
 
