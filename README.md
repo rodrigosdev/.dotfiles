@@ -61,16 +61,16 @@ dot update
 
 ## Ioskeley Mono
 
-Ioskeley Mono Term comes from the latest release at https://github.com/ahatem/IoskeleyMono. Rex is a terminal, so the installer uses the Term family. It copies the Normal, unhinted faces into `~/Library/Fonts` when any of these files is missing. Unhinted is the build for macOS. `dot doctor` checks only these four.
+The terminal font is `IoskeleyMonoTerm Nerd Font Mono`, from the latest release at https://github.com/ahatem/IoskeleyMono (`IoskeleyMono-Term-NerdFont.zip`). Rex is a terminal, so the installer uses the Term build and the single-cell Nerd Font Mono faces. The family name has no space in `IoskeleyMonoTerm`. Starship draws its icons from that font. The installer copies the Normal faces into `~/Library/Fonts` when any of these files is missing. The Nerd archive has no hinted split. `dot doctor` checks only these four.
 
-- `IoskeleyMonoTerm-Regular.ttf`
-- `IoskeleyMonoTerm-Bold.ttf`
-- `IoskeleyMonoTerm-Italic.ttf`
-- `IoskeleyMonoTerm-BoldItalic.ttf`
+- `IoskeleyMonoTermNerdFontMono-Regular.ttf`
+- `IoskeleyMonoTermNerdFontMono-Bold.ttf`
+- `IoskeleyMonoTermNerdFontMono-Italic.ttf`
+- `IoskeleyMonoTermNerdFontMono-BoldItalic.ttf`
 
-The copy also includes the other Normal unhinted weights. Hinted and SemiCondensed files stay out.
+The copy also includes the other Normal weights. SemiCondensed faces and the larger Nerd Font faces stay out. Once the Nerd faces are installed, the plain Term faces from the earlier installer are removed.
 
-Rex uses this family. The font is a Rex app setting, so it lives in `home/.config/rex/macos-defaults.conf` and not in `init.lua`.
+Rex uses this family. The font is a Rex app setting, so it lives in `home/.config/rex/macos-defaults.conf` and not in `init.lua`. Relaunch Rex after the font changes.
 
 ## Rex
 

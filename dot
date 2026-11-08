@@ -99,15 +99,29 @@ __font_present() {
 # Rex uses these four faces. The release also includes the other Normal weights.
 __ioskeley_faces() {
   printf '%s\n' \
-    IoskeleyMonoTerm-Regular.ttf \
-    IoskeleyMonoTerm-Bold.ttf \
-    IoskeleyMonoTerm-Italic.ttf \
-    IoskeleyMonoTerm-BoldItalic.ttf
+    IoskeleyMonoTermNerdFontMono-Regular.ttf \
+    IoskeleyMonoTermNerdFontMono-Bold.ttf \
+    IoskeleyMonoTermNerdFontMono-Italic.ttf \
+    IoskeleyMonoTermNerdFontMono-BoldItalic.ttf
 }
 
 # The asset name stays the same across releases, so /releases/latest is enough.
+# Term, plus the single-cell Nerd Font Mono faces. Starship draws its icons from these.
 __ioskeley_release_zip_url() {
-  printf '%s\n' 'https://github.com/ahatem/IoskeleyMono/releases/latest/download/IoskeleyMono-Term.zip'
+  printf '%s\n' 'https://github.com/ahatem/IoskeleyMono/releases/latest/download/IoskeleyMono-Term-NerdFont.zip'
+}
+
+# Plain Term faces from the earlier installer. Nerd names do not use this prefix.
+__ioskeley_remove_plain_term() {
+  local path removed=0
+  for path in "$HOME/Library/Fonts"/IoskeleyMonoTerm-*.ttf; do
+    [[ -f "$path" ]] || continue
+    rm -f "$path"
+    removed=$((removed + 1))
+  done
+  if [[ "$removed" -gt 0 ]]; then
+    __info "Removed $removed plain Ioskeley Mono Term face(s)"
+  fi
 }
 
 # Installs the latest Node.js LTS with fnm. fnm sets it as the default only
@@ -143,9 +157,10 @@ __ensure_node() {
   __ok "Node.js default is $version"
 }
 
-# Copies Normal, unhinted Ioskeley Mono Term faces into ~/Library/Fonts.
-# Skips the download when the four faces are already installed. Leaves hinted
-# and SemiCondensed files out. Unhinted is the build for macOS.
+# Copies Normal Ioskeley Mono Term Nerd Font Mono faces into ~/Library/Fonts.
+# Skips the download when the four faces are already installed. The Nerd
+# archive has no hinted split. SemiCondensed and the larger Nerd Font faces
+# stay out. Removes the plain Term faces once the Nerd faces are present.
 __install_ioskeley_mono() {
   local face ready=1 dest url tmp
   while IFS= read -r face; do
@@ -157,6 +172,7 @@ __install_ioskeley_mono() {
     while IFS= read -r face; do
       __ok "$face"
     done < <(__ioskeley_faces)
+    __ioskeley_remove_plain_term
     return 0
   fi
   if ! __have curl || ! __have unzip; then
@@ -173,8 +189,8 @@ __install_ioskeley_mono() {
     rm -rf "$tmp"
     return 1
   fi
-  # Term family, Normal width, unhinted. Hinted is for standard-DPI displays.
-  if ! unzip -q -o -j "$tmp/ioskeley.zip" 'Normal/Unhinted/*.ttf' -d "$dest"; then
+  # Term family, Normal width, Nerd Font Mono. The archive also has NF and SemiCondensed.
+  if ! unzip -q -o -j "$tmp/ioskeley.zip" 'Normal/IoskeleyMonoTermNerdFontMono-*.ttf' -d "$dest"; then
     __bad "Could not install Ioskeley Mono"
     rm -rf "$tmp"
     return 1
@@ -189,6 +205,9 @@ __install_ioskeley_mono() {
       ready=0
     fi
   done < <(__ioskeley_faces)
+  if [[ "$ready" -eq 1 ]]; then
+    __ioskeley_remove_plain_term
+  fi
   [[ "$ready" -eq 1 ]]
 }
 
