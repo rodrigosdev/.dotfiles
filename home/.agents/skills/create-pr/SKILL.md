@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Create a reviewable GitHub pull request from the current branch with a Conventional Commits title, a concise evidence-based body, and before/after screenshots for UI changes. Use when asked to open, create, publish, or prepare a PR.
+description: Create a reviewable GitHub pull request from the current branch with a Conventional Commits title, a concise evidence-based body, and before/after screenshots for UI changes. Use when asked to file, open, create, publish, or prepare a PR.
 metadata:
   credits: "Evidence-by-type, honesty rules, and review-status disclosure are adapted from Hugo Richard's [What my pull requests look like now](https://hugorcd.com/writing/what-my-pull-requests-look-like-now)."
 ---
@@ -11,16 +11,18 @@ Open a PR that a reviewer can understand from the body alone. Explain the change
 
 ## Workflow
 
-1. Inspect the repo: `git status`, current branch, remotes, default branch, `.github/PULL_REQUEST_TEMPLATE*`, and `AGENTS.md` / `CONTRIBUTING.md` for PR rules.
+1. Inspect the repo: `git status`, current branch, remotes, default branch, `.github/PULL_REQUEST_TEMPLATE*`, and `AGENTS.md` / `CONTRIBUTING.md` for PR rules. Check whether a PR for this branch already exists; if it does, update it instead of opening another.
 2. Compute the merge base against the target branch and record the exact `base...head` range the PR publishes. If the branch is stacked on another unmerged branch, target that branch and describe only this PR's own changes.
 3. Read the full diff. Separate runtime code from generated files, lockfiles, and snapshots. Trace changed code to its entry points, callers, and external boundaries so architecture claims are backed by file paths or symbols.
 4. Classify the PR (feature, fix, refactor, chore, docs) and decide which optional body sections earn their place. See [pr-body](references/pr-body.md).
 5. Run the checks that match the changed surfaces (focused tests, typecheck, lint). Record the exact commands and results.
 6. If the diff changes user-visible UI, capture before/after evidence. See [visual-evidence](references/visual-evidence.md).
 7. Review the commit history and reshape it into atomic Conventional Commits. See [Commits](#commits).
-8. Write the body to a temporary file. Push the branch. Create the PR with `gh pr create --title ... --body-file ...` (add `--attach` for each screenshot; newer `gh` can upload local images and videos from the CLI, see [Attaching files with GitHub CLI](https://docs.github.com/en/github-cli/github-cli/attaching-files-with-github-cli)). Use `--draft` when checks are still running or the work is not review-ready.
+8. Write the body to a temporary file. Push the branch. Create the PR with `gh pr create --title ... --body-file ...` (add `--attach` for each screenshot; newer `gh` can upload local images and videos from the CLI, see [Attaching files with GitHub CLI](https://docs.github.com/en/github-cli/github-cli/attaching-files-with-github-cli)). Open a real PR, not a draft, so review bots run. Use `--draft` only when the work is not review-ready. If `gh pr create` fails because the GraphQL rate limit is used up, open it through REST: `gh api repos/<owner>/<repo>/pulls -f title=... -f head=... -f base=... -F body=@<file>`.
 9. Open the created PR and verify title, base, head, rendered tables, diagrams, and images.
-10. Address review comments: fix each confirmed issue, run focused checks, push, reply with evidence, and resolve the thread.
+10. Address review comments: fix each confirmed issue, run focused checks, push, reply with evidence, and resolve the thread. If the user also asked to monitor or babysit the PR, continue with the `babysit-pr` skill.
+
+Do not post a follow-up PR comment unless it serves the user's request. When a comment is needed, use the `leaving-pr-comments` skill.
 
 ## Title
 
@@ -36,7 +38,12 @@ docs: clarify worktree setup
 
 - Lowercase, imperative, no trailing period, under ~70 characters.
 - Scope is the package, module, or feature name the repo already uses. Omit it when the change is repo-wide.
-- Squash-merge repos turn the title into the commit message; write it as the commit you want in history.
+- Squash-merge repos turn the title into the commit message; write it as the commit you want in history. Check recently merged PRs and `git log` for the repo's conventions.
+- Prefer a concise, human-readable title that says why the change matters over one that names the mechanism:
+
+> ❌ perf(server): negotiate permessage-deflate on the websocket
+
+> ✅ perf(server): cut websocket frame size by 70%+ with gzipping
 
 ## Commits
 
@@ -58,6 +65,12 @@ feat: add task feature, fix sidebar, update deps, refactor utils
 - Do not rewrite commits that are already pushed and under review; add new commits instead.
 
 ## Body
+
+Open with a plain explanation of the problem, based on the user's original prompt, then briefly explain the solution. Do not lead with an implementation inventory:
+
+> ❌ Removed implicit workspace carry-over from every "new thread" entry point (cmd+n / cmd+shift+o, sidebar v1/v2 buttons, command palette). New threads inherit only the project from context; branch, worktree, and env mode always come from the configured defaults. Deleted buildContextualThreadOptions, startNewThreadInProjectFromContext, and the v1 sidebar's seed-context machinery.
+
+> ✅ My "new worktree" default was ignored when starting new threads on existing worktrees. Super unintuitive. Now your preferences always apply.
 
 Required in every PR:
 
@@ -82,9 +95,10 @@ If the repo has a PR template, keep its headings and fill them; add sections abo
 - Do not describe inherited changes from a parent branch as this PR's changes.
 - Use plain hyphens; never em dashes (U+2014) or en dashes (U+2013).
 - No filler ("This PR aims to...", "comprehensive", "robust"). Start sentences with the fact.
-- Do not paste tokens, secrets, user records, or full payloads into the body.
+- Do not paste tokens, secrets, user records, or full payloads into the body. Before submitting, check the title, body, quotes, and attachments for secrets and private details.
 - Do not commit screenshots or other PR-only artifacts to the repo; attach them with `gh --attach` (supported by newer `gh`, no manual upload needed).
 - A description conveys belief, not proof. Show the change working instead of only saying it works.
 - "Before" is what is live (base branch or production), never a faked revert. Check every capture; agents can screenshot the wrong page. Use demo or sanitized data only.
 - Security fixes: keep the description short and delay exploit details until release.
 - If the PR was written with the help of an agent, say so in one line at the end of the body: what the human contributed (gave the task, wrote the spec, shaped the solution) and whether they have reviewed the diff yet. If not, the reviewer is the first human to look.
+- End the body with the public model name and harness that made the changes, for example `Created with <model> in <harness>.` Include subagent models that wrote part of the change. Use the model name the harness reports; if it reports none, name the harness without guessing a model. This is the last line, after the agent-help line.
