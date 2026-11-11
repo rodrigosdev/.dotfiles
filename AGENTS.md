@@ -55,6 +55,7 @@ Repo path: `~/Code/.dotfiles`.
 | Starship | `home/.config/starship.toml` |
 | Tinycast | `home/.config/tinycast/settings.json` |
 | Agent skills (Claude Code and others) | `home/.agents/skills/` |
+| Opening a PR (agents) | `home/.agents/skills/create-pr/` |
 | Setup CLI and GitHub SSH client block | `dot` |
 | Refresh symlinks | `dot stow` |
 
@@ -101,6 +102,9 @@ brew bundle --file=packages/bundle
 ## NOTES
 
 - Skills live once, in `home/.agents/skills/<name>/SKILL.md`. Stow links them into `~/.agents/skills`. Claude Code reads `~/.claude/skills`, so `dot stow` makes that path one directory symlink to `../.agents/skills`. It sits outside this repo, so a new skill shows up in Claude Code after `dot stow` links its file, with no second copy or link. Do not add `home/.claude/skills`. Stow would follow it and link each file. `dot doctor` fails when `~/.claude/skills` is not that symlink.
+- Some skills are copied from other repos: `t3dotgg/tstack` (`babysit-pr`, `council`, `full-send`, `full-stop`, `leaving-pr-comments`, `modernize`, `sol-loop`, `takeover`), `emilkowalski/skills` (the design and animation skills), and `janestreet/agent_skills` (`socratic-tutor`). The commit that adds each set names its source. Copy the skill directories only, never the upstream `LICENSE` or `README.md`. They are edited in place after the copy, so a fresh copy over them drops local changes. Diff against upstream first.
+- `create-pr` is the one skill for opening a PR. tstack's `file-pr` was merged into it, and `full-send` and `takeover` call `create-pr`. When tstack is copied again, leave `file-pr` out and point any new `file-pr` reference at `create-pr`. `council` puts its review table before the `Created with <model> in <harness>.` line that `create-pr` ends the body with.
+- `babysit-pr/scripts/pr-wait` must stay executable. Stow links the file, so the link runs with the mode of the file in this repo.
 
 - Tinycast ignores `settings.json` until Settings, Backup, Settings File is enabled and the existing file is imported. See `home/.config/tinycast/README.md`.
 - `~/.config/fish/completions/grok.fish` is generated on this machine. Leave it next to the stowed files. Do not replace `~/.config/fish` with a symlink.

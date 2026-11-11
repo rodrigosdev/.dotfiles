@@ -90,6 +90,14 @@ After you change `home/.config/fish/fish_plugins`, run `fisher update` from Fish
 
 Run `dot help` for the full command list.
 
+## Agent skills
+
+Agent skills live in `home/.agents/skills/<name>/SKILL.md`. `dot stow` links them into `~/.agents/skills`, and `~/.claude/skills` is one symlink to that directory, so Claude Code picks up a new skill after `dot stow`.
+
+To add a skill, create its directory under `home/.agents/skills/`, then run `dot stow`. For a skill from another repo, copy the skill directory without the upstream license and name the source repo and commit in the commit message.
+
+PR work goes through `create-pr`, which opens the PR. `babysit-pr` watches it through review and CI, and `leaving-pr-comments` formats any comment posted for you. `full-send` chains these up to a merge, and `full-stop` stops at a PR that is ready to merge.
+
 ## More notes
 
 - `AGENTS.md` documents the repo layout and conventions.
